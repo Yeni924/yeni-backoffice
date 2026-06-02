@@ -1,0 +1,39 @@
+<aside class="sidebar" id="sidebar" xmlns:th="http://www.thymeleaf.org">
+    <div class="logo">
+        <div>
+            <div class="logo-text">Yeni<span>Backoffice</span></div>
+            <div class="logo-sub">Commerce Admin Portfolio</div>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="nav-group"
+             th:each="group : ${sidebarNavigationGroups}"
+             th:data-group-code="${group.groupCode}"
+             th:data-has-active="${#lists.contains(group.items.![active], true)}">
+            <button type="button" class="nav-group-toggle" aria-expanded="true">
+                <span class="nav-title" th:text="${group.groupName}">GROUP</span>
+                <span class="nav-arrow">⌄</span>
+            </button>
+
+            <div class="nav-group-items">
+                <a th:each="item : ${group.items}"
+                   th:href="@{${item.itemUrl}}"
+                   th:classappend="${item.active} ? 'active' : ''">
+                    <span class="nav-icon" th:text="${item.icon ?: ''}">OV</span>
+                    <span th:text="${item.itemName}">Overview</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div th:if="${isLoggedIn}">
+            <strong th:text="${loginAdmin.adminName}">Admin</strong>
+            <button type="button" class="sidebar-link-button" id="adminLogoutBtn">Logout</button>
+        </div>
+        <div th:unless="${isLoggedIn}">
+            <a class="sidebar-login-link" th:href="@{/admin/login}">Admin Login</a>
+        </div>
+    </div>
+</aside>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Menu Management - Yeni Backoffice</title>
+
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/layout.css}" />
+    <link rel="stylesheet" th:href="@{/css/components.css}" />
+    <link rel="stylesheet" th:href="@{/css/pages/admin-navigation.css}" />
+</head>
+
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/sidebar}"></div>
+
+    <main class="main">
+        <div th:replace="~{fragments/topbar :: header}"></div>
+
+        <section class="content">
+            <div class="filter-section card">
+                <div class="filter-row">
+                    <select id="groupFilter" class="filter-input">
+                        <option value="">All groups</option>
+                        <option th:each="group : ${navigationGroups}"
+                                th:value="${group.groupCode}"
+                                th:text="${group.groupName}">
+                            GROUP
+                        </option>
+                    </select>
+
+                    <input type="text" id="itemNameFilter" class="filter-input" placeholder="Search menu name" />
+
+                    <select id="useYnFilter" class="filter-input">
+                        <option value="">Use status</option>
+                        <option value="true">Used</option>
+                        <option value="false">Unused</option>
+                    </select>
+
+                    <select id="displayYnFilter" class="filter-input">
+                        <option value="">Display status</option>
+                        <option value="true">Shown</option>
+                        <option value="false">Hidden</option>
+                    </select>
+
+                    <button class="btn btn-primary" id="searchBtn" type="button">Search</button>
+                    <button class="btn btn-light" id="resetBtn" type="button">Reset</button>
+                    <button class="btn btn-primary" id="addBtn" type="button">New Menu</button>
+                </div>
+            </div>
+
+            <div class="card table-section">
+                <div class="panel-header">
+                    <h3>Sidebar Navigation</h3>
+                    <span class="table-count" th:text="|Total ${#lists.size(navigationItems)}|">Total 0</span>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Group</th>
+                            <th>Icon</th>
+                            <th>Name</th>
+                            <th>URL</th>
+                            <th>Depth</th>
+                            <th>Sort</th>
+                            <th>Use</th>
+                            <th>Display</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="navigationTableBody">
+                        <tr th:each="item : ${navigationItems}"
+                            th:data-id="${item.id}"
+                            th:data-group-id="${item.groupId}"
+                            th:data-group-code="${item.groupCode}"
+                            th:data-parent-id="${item.parentNavigationItemId}"
+                            th:data-icon="${item.icon}"
+                            th:data-item-name="${item.itemName}"
+                            th:data-item-url="${item.itemUrl}"
+                            th:data-depth="${item.depth}"
+                            th:data-sort-order="${item.sortOrder}"
+                            th:data-use-yn="${item.useYn}"
+                            th:data-display-yn="${item.displayYn}"
+                            th:data-required-role="${item.requiredRole}">
+                            <td th:text="${item.id}">1</td>
+                            <td th:text="${item.groupName}">GROUP</td>
+                            <td th:text="${item.icon}">-</td>
+                            <td th:text="${item.itemName}">Menu</td>
+                            <td th:text="${item.itemUrl}">/dashboard</td>
+                            <td th:text="${item.depth}">1</td>
+                            <td th:text="${item.sortOrder}">1</td>
+                            <td>
+                                <button class="status status-toggle"
+                                        th:classappend="${item.useYn} ? 'paid' : 'cancel'"
+                                        th:data-id="${item.id}"
+                                        th:data-field="use"
+                                        th:data-enabled="${item.useYn}"
+                                        th:text="${item.useYn} ? 'Used' : 'Unused'"
+                                        type="button">
+                                    Used
+                                </button>
+                            </td>
+                            <td th:text="${item.requiredRole}">USER</td>
+                            <td>
+                                <button class="status status-toggle"
+                                        th:classappend="${item.displayYn} ? 'paid' : 'cancel'"
+                                        th:data-id="${item.id}"
+                                        th:data-field="display"
+                                        th:data-enabled="${item.displayYn}"
+                                        th:text="${item.displayYn} ? 'Shown' : 'Hidden'"
+                                        type="button">
+                                    Shown
+                                </button>
+                            </td>
+                            <td>
+                                <button class="btn-edit" th:data-id="${item.id}" type="button">Edit</button>
+                                <button class="btn-delete" th:data-id="${item.id}" type="button">Delete</button>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(navigationItems)}">
+                            <td colspan="11" class="empty-cell">No navigation items.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="navigationModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modalTitle">New Menu</h3>
+                        <button class="modal-close" id="modalCloseBtn" type="button">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="navigationForm">
+                            <input type="hidden" id="formNavigationItemId" />
+
+                            <div class="form-group">
+                                <label for="formNavigationGroupId">Group *</label>
+                                <select id="formNavigationGroupId" required>
+                                    <option value="">Select group</option>
+                                    <option th:each="group : ${navigationGroups}"
+                                            th:value="${group.id}"
+                                            th:text="${group.groupName}">
+                                        GROUP
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="formIcon">Icon</label>
+                                <input type="text" id="formIcon" placeholder="Icon text" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="formItemName">Name *</label>
+                                <input type="text" id="formItemName" required placeholder="Menu name" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="formItemUrl">URL *</label>
+                                <input type="text" id="formItemUrl" required placeholder="/menu-url" />
+                            </div>
+
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="formDepth">Depth</label>
+                                    <input type="number" id="formDepth" value="1" min="1" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="formSortOrder">Sort Order</label>
+                                    <input type="number" id="formSortOrder" value="1" min="1" />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="formRequiredRole">Required Role</label>
+                                <select id="formRequiredRole">
+                                    <option value="USER">USER</option>
+                                    <option value="ADMIN">ADMIN</option>
+                                </select>
+                            </div>
+
+                            <div class="form-check-row">
+                                <label>
+                                    <input type="checkbox" id="formUseYn" checked />
+                                    Used
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="formDisplayYn" checked />
+                                    Show in sidebar
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-light" id="modalCancelBtn" type="button">Cancel</button>
+                        <button class="btn btn-primary" id="modalSaveBtn" type="button">Save</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script th:src="@{/js/common.js}"></script>
+<script th:src="@{/js/pages/admin-navigation.js}"></script>
+</body>
+</html>
