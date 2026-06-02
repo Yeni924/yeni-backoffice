@@ -1,0 +1,3 @@
+ALTER TABLE IF EXISTS admin_navigation_item
+    ADD COLUMN IF NOT EXISTS required_role VARCHAR(20) DEFAULT 'USER' NOT NULL;
+

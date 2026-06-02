@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login - Yeni Backoffice</title>
+
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/components.css}" />
+    <link rel="stylesheet" th:href="@{/css/pages/admin-login.css}" />
+</head>
+<body class="login-page">
+<main class="login-shell">
+    <section class="login-panel">
+        <div class="login-brand">
+            <div class="logo-text">Yeni<span>Backoffice</span></div>
+            <p>Sign in to use administrator features.</p>
+        </div>
+
+        <form id="adminLoginForm" class="login-form">
+            <div class="form-group">
+                <label for="loginId">ID</label>
+                <input id="loginId" name="loginId" type="text" autocomplete="username" required />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required />
+            </div>
+
+            <div id="loginError" class="login-error" hidden></div>
+
+            <button class="btn btn-primary login-button" type="submit">Login</button>
+        </form>
+
+        <div class="login-hint">Test account: test / 1234</div>
+    </section>
+</main>
+
+<script th:src="@{/js/pages/admin-login.js}"></script>
+</body>
+</html>
