@@ -1,0 +1,17 @@
+<header class="topbar" xmlns:th="http://www.thymeleaf.org">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <button class="mobile-menu-btn" type="button" onclick="toggleSidebar()">Menu</button>
+        <div class="page-title">
+            <h1 th:text="${title}">Overview</h1>
+            <p th:text="${description}">Backoffice portfolio dashboard.</p>
+        </div>
+    </div>
+
+    <div class="top-actions">
+        <input class="search" type="text" placeholder="Search orders, products, projects" />
+        <div class="profile-pill">
+            <div class="avatar">Y</div>
+            Ye Eun Kwon
+        </div>
+    </div>
+</header>

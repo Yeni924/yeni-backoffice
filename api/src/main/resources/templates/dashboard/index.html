@@ -1,0 +1,172 @@
+﻿<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yeni Backoffice Portfolio</title>
+
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/layout.css}" />
+    <link rel="stylesheet" th:href="@{/css/components.css}" />
+    <link rel="stylesheet" th:href="@{/css/pages/dashboard.css}" />
+</head>
+
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/sidebar}"></div>
+
+    <main class="main">
+        <div th:replace="~{fragments/topbar :: header}" th:with="title='Overview', description='Backoffice portfolio dashboard.'"></div>
+
+        <section class="content">
+            <div class="hero">
+                <div class="card intro-card">
+                    <div class="badge">Backend 쨌 Backoffice 쨌 Payment</div>
+                    <h2>
+                        C#/.NET ?ㅻТ 寃쏀뿕??br />
+                        <span>Java/Spring Boot 諛깆삤?쇱뒪</span>濡??뺤옣?⑸땲??
+                    </h2>
+                    <p class="intro-desc">
+                        POS쨌?ㅼ삤?ㅽ겕, 寃곗젣, 愿由ъ옄 ?쒖뒪?? API ?곕룞, ?뚮┝??Agent, ?댁쁺 ?댁뒋 ???寃쏀뿕??諛뷀깢?쇰줈
+                        ?쇳븨紐?二쇰Ц/寃곗젣/諛곗넚 ?댁쁺 ?쒖뒪?쒖쓣 Spring Boot 湲곕컲?쇰줈 援ы쁽???ы듃?대━?ㅼ엯?덈떎.
+                    </p>
+
+                    <div class="keyword-row">
+                        <span class="keyword">C#/.NET</span>
+                        <span class="keyword">Spring Boot</span>
+                        <span class="keyword">JPA</span>
+                        <span class="keyword">MSSQL / MySQL</span>
+                        <span class="keyword">REST API</span>
+                        <span class="keyword">Payment</span>
+                        <span class="keyword">Backoffice</span>
+                        <span class="keyword">Notification Queue</span>
+                    </div>
+                </div>
+
+                <div class="card resume-card">
+                    <div class="resume-header">
+                        <h3>Resume Summary</h3>
+                        <button class="btn btn-primary">?대젰??蹂닿린</button>
+                    </div>
+
+                    <div class="info-list">
+                        <div class="info-item">
+                            <div class="info-label">Name</div>
+                            <div class="info-value" th:text="${dashboard.resumeSummary.name}">沅뚯삁?</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Role</div>
+                            <div class="info-value" th:text="${dashboard.resumeSummary.role}">Backoffice / API Developer</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Main Stack</div>
+                            <div class="info-value" th:text="${dashboard.resumeSummary.mainStack}">C#, .NET, MSSQL</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Expanding Stack</div>
+                            <div class="info-value" th:text="${dashboard.resumeSummary.expandingStack}">Java, Spring Boot, JPA</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Domain</div>
+                            <div class="info-value" th:text="${dashboard.resumeSummary.domain}">POS, Payment, Commerce Admin</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">
+                <div>
+                    <h2>Commerce Admin Dashboard</h2>
+                    <p>?쇳븨紐??댁쁺?먭? ?ㅼ젣濡??뺤씤??踰뺥븳 二쇰Ц, 寃곗젣, 諛곗넚 吏?쒖엯?덈떎.</p>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="card stat-card" th:each="stat : ${dashboard.stats}">
+                    <div class="stat-label" th:text="${stat.label}">?쇰꺼</div>
+                    <div class="stat-value" th:text="${stat.value}">媛?/div>
+                    <div class="stat-desc" th:classappend="${stat.warning} ? 'warn'" th:text="${stat.description}">?ㅻ챸</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="panel-header">
+                        <h3>理쒓렐 二쇰Ц ?댁뿭</h3>
+                        <button class="btn btn-light">二쇰Ц ?꾩껜蹂닿린</button>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>二쇰Ц踰덊샇</th>
+                                <th>二쇰Ц??/th>
+                                <th>?곹뭹紐?/th>
+                                <th>寃곗젣湲덉븸</th>
+                                <th>?곹깭</th>
+                                <th>二쇰Ц?쇱떆</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="order : ${dashboard.recentOrders}">
+                                <td th:text="${order.orderNumber}">二쇰Ц踰덊샇</td>
+                                <td th:text="${order.customerName}">二쇰Ц??/td>
+                                <td th:text="${order.productName}">?곹뭹紐?/td>
+                                <td th:text="${order.amount}">寃곗젣湲덉븸</td>
+                                <td>
+                                    <span class="status" 
+                                          th:classappend="${order.statusClass}"
+                                          th:text="${order.status}">
+                                        ?곹깭
+                                    </span>
+                                </td>
+                                <td th:text="${order.orderDateTime}">二쇰Ц?쇱떆</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="panel-header">
+                        <h3>Career Projects</h3>
+                        <button class="btn btn-light">?곸꽭蹂닿린</button>
+                    </div>
+
+                    <div class="project-list">
+                        <div class="project-item" th:each="project : ${dashboard.careerProjects}">
+                            <div class="project-title">
+                                <strong th:text="${project.title}">?꾨줈?앺듃紐?/strong>
+                                <span class="project-period" th:text="${project.period}">湲곌컙</span>
+                            </div>
+                            <p class="project-desc" th:text="${project.description}">?ㅻ챸</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">
+                <div>
+                    <h2>Planned Admin Features</h2>
+                    <p>?욎쑝濡?援ы쁽??湲곕뒫 ?⑥쐞?낅땲?? README?먮룄 ??援ъ“濡??뺣━?섎㈃ 醫뗭뒿?덈떎.</p>
+                </div>
+            </div>
+
+            <div class="feature-grid">
+                <div class="card feature-card" th:each="feature : ${dashboard.plannedFeatures}">
+                    <div class="feature-icon" th:text="${feature.icon}">?룧</div>
+                    <h3 th:text="${feature.title}">湲곕뒫紐?/h3>
+                    <p th:text="${feature.description}">?ㅻ챸</p>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script th:src="@{/js/common.js}"></script>
+<script th:src="@{/js/pages/dashboard.js}"></script>
+</body>
+</html>
+
+
