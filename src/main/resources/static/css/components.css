@@ -1,0 +1,140 @@
+.card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 14px;
+}
+
+.keyword {
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.keyword-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.btn {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: #fff;
+}
+
+.btn-light {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.profile-pill {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 11px 6px 6px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.avatar {
+    width: 31px;
+    height: 31px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 76px;
+    height: 26px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.status.paid {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status.ready {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.status.cancel {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.status.shipping {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    min-width: 800px;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 1px solid #eef0f3;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+th {
+    background: #f9fafb;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+td {
+    color: #374151;
+}
