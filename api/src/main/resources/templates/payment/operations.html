@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PG Operations - Yeni Backoffice</title>
+
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/layout.css}" />
+    <link rel="stylesheet" th:href="@{/css/components.css}" />
+    <link rel="stylesheet" th:href="@{/css/pages/payment-operations.css}" />
+</head>
+
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/sidebar}"></div>
+
+    <main class="main">
+        <div th:replace="~{fragments/topbar :: header}"></div>
+
+        <section class="content payment-page">
+            <div class="payment-hero">
+                <div>
+                    <span class="badge">PG Adapter Mock</span>
+                    <h2>공통 결제 도메인 기반 PG 운영 콘솔</h2>
+                    <p>
+                        Payment Gateway Bridge API를 통해 PG Provider 선택, 승인, 취소, UNKNOWN 재조회, 매출 생성,
+                        외부 전송, 정산 배치 흐름을 한 화면에서 확인할 수 있는 포트폴리오용 mock 화면입니다.
+                    </p>
+                </div>
+                <a class="btn btn-light swagger-link" href="/swagger-ui/index.html" target="_blank" rel="noopener">Swagger</a>
+            </div>
+
+            <div class="ops-grid">
+                <section class="card ops-panel">
+                    <div class="panel-header">
+                        <h3>Mock Payment</h3>
+                        <span id="flowStatus" class="status ready">READY</span>
+                    </div>
+
+                    <div class="form-grid">
+                        <label>
+                            주문번호
+                            <input id="orderNo" type="text" />
+                        </label>
+                        <label>
+                            결제금액
+                            <input id="amount" type="number" min="1000" step="1000" value="12000" />
+                        </label>
+                        <label>
+                            구매자
+                            <input id="buyerName" type="text" value="Portfolio Buyer" />
+                        </label>
+                        <label>
+                            상품명
+                            <input id="productName" type="text" value="PG Adapter Mock Item" />
+                        </label>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="btn btn-primary" id="runPaymentBtn" type="button">결제 준비 + 승인</button>
+                        <button class="btn btn-light" id="cancelPaymentBtn" type="button" disabled>부분 취소</button>
+                        <button class="btn btn-light" id="runSettlementBtn" type="button">금일 정산 배치</button>
+                    </div>
+
+                    <div class="flow-box">
+                        <div>Common Payment Domain</div>
+                        <span></span>
+                        <div>PG Adapter</div>
+                        <span></span>
+                        <div>Sales / External Send</div>
+                        <span></span>
+                        <div>Settlement Batch</div>
+                    </div>
+                </section>
+
+                <section class="card ops-panel">
+                    <div class="panel-header">
+                        <h3>Operation Summary</h3>
+                        <button class="btn btn-light" id="refreshBtn" type="button">Refresh</button>
+                    </div>
+                    <div class="metric-grid">
+                        <div>
+                            <span>결제 건수</span>
+                            <strong id="paymentCount">0</strong>
+                        </div>
+                        <div>
+                            <span>승인 금액</span>
+                            <strong id="approvedAmount">0</strong>
+                        </div>
+                        <div>
+                            <span>매출 금액</span>
+                            <strong id="salesAmount">0</strong>
+                        </div>
+                        <div>
+                            <span>전송 실패</span>
+                            <strong id="failedExternalSendCount">0</strong>
+                        </div>
+                    </div>
+                    <div id="messageBox" class="message-box">대기 중입니다.</div>
+                </section>
+            </div>
+
+            <div class="ops-grid">
+                <section class="card table-section">
+                    <div class="panel-header">
+                        <h3>Payments</h3>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Order</th>
+                                <th>TID</th>
+                                <th>Amount</th>
+                                <th>Canceled</th>
+                                <th>Status</th>
+                            </tr>
+                            </thead>
+                            <tbody id="paymentTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="card table-section">
+                    <div class="panel-header">
+                        <h3>Sales</h3>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Order</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Business Date</th>
+                            </tr>
+                            </thead>
+                            <tbody id="salesTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <div class="ops-grid">
+                <section class="card table-section">
+                    <div class="panel-header">
+                        <h3>External Send</h3>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Request Key</th>
+                                <th>Target</th>
+                                <th>Status</th>
+                                <th>Retry</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody id="externalTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="card table-section">
+                    <div class="panel-header">
+                        <h3>Settlements</h3>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Gross</th>
+                                <th>Fee</th>
+                                <th>Net</th>
+                                <th>Status</th>
+                            </tr>
+                            </thead>
+                            <tbody id="settlementTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script th:src="@{/js/common.js}"></script>
+<script th:src="@{/js/pages/payment-operations.js}"></script>
+</body>
+</html>

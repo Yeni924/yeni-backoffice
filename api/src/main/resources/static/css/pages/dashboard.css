@@ -1019,6 +1019,62 @@
             gap: 8px;
             margin-top: 22px;
         }
+        .demo-entry {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin: 0 0 18px;
+        }
+        .demo-entry-card {
+            display: block;
+            min-height: 132px;
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: #fff;
+            box-shadow: 0 16px 42px rgba(31, 33, 40, .05);
+            transition: transform .22s var(--ease-out), border-color .22s var(--ease-out), box-shadow .22s var(--ease-out);
+        }
+        .demo-entry-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary-line);
+            box-shadow: 0 22px 56px rgba(31, 33, 40, .08);
+        }
+        .demo-entry-card.primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            border-color: var(--primary);
+            color: #fff;
+        }
+        .demo-entry-card span {
+            display: inline-flex;
+            margin-bottom: 10px;
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 850;
+            letter-spacing: .04em;
+        }
+        .demo-entry-card.primary span {
+            color: rgba(255, 255, 255, .78);
+        }
+        .demo-entry-card strong {
+            display: block;
+            color: var(--text);
+            font-size: 17px;
+            font-weight: 780;
+            letter-spacing: -0.03em;
+        }
+        .demo-entry-card.primary strong {
+            color: #fff;
+        }
+        .demo-entry-card p {
+            margin: 9px 0 0;
+            color: var(--sub);
+            font-size: 12.5px;
+            line-height: 1.55;
+        }
+        .demo-entry-card.primary p {
+            color: rgba(255, 255, 255, .82);
+        }
         .impact-stats {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1167,6 +1223,7 @@
         @media (max-width: 1100px) {
             .impact-hero { grid-template-columns: 1fr; padding: 26px; }
             .impact-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .demo-entry { grid-template-columns: 1fr; }
             .stat-note { grid-column: 1 / -1; }
         }
         @media (max-width: 768px) {

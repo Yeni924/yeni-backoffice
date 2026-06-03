@@ -14,10 +14,12 @@ dependencies {
 	api 'org.springframework.boot:spring-boot-starter-validation'
 	api 'org.springframework.security:spring-security-crypto'
 
+	compileOnly 'io.swagger.core.v3:swagger-annotations-jakarta:2.2.30'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testCompileOnly 'io.swagger.core.v3:swagger-annotations-jakarta:2.2.30'
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
