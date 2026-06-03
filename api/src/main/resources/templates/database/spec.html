@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DB Specification - Yeni Backoffice</title>
+
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/layout.css}" />
+    <link rel="stylesheet" th:href="@{/css/components.css}" />
+    <link rel="stylesheet" th:href="@{/css/pages/database-spec.css}" />
+</head>
+
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/sidebar}"></div>
+
+    <main class="main">
+        <div th:replace="~{fragments/topbar :: header}"></div>
+
+        <section class="content db-spec-page">
+            <div class="db-hero">
+                <span class="badge">Database Design</span>
+                <h2>PG 결제 운영 Mock DB 명세</h2>
+                <p>공통 결제 도메인, PGB Gateway 로그, 매출 전송, 수수료 정책, 정산 배치 흐름을 기준으로 구성한 테이블 명세입니다.</p>
+            </div>
+
+            <div class="db-table-grid">
+                <article class="card db-card" th:each="table : ${tableSpecs}">
+                    <div class="db-card-header">
+                        <h3 th:text="${table.name}">table_name</h3>
+                        <p th:text="${table.description}">description</p>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>Column</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="column : ${table.columns}">
+                                <td th:text="${column.name}">id</td>
+                                <td><span class="keyword" th:text="${column.type}">PK</span></td>
+                                <td th:text="${column.description}">description</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script th:src="@{/js/common.js}"></script>
+</body>
+</html>

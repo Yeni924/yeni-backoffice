@@ -1,0 +1,59 @@
+.db-spec-page {
+    display: grid;
+    gap: 20px;
+}
+
+.db-hero {
+    padding: 26px;
+    border: 1px solid #dbe4f0;
+    border-radius: 18px;
+    background: #ffffff;
+}
+
+.db-hero h2 {
+    margin: 0;
+    color: #111827;
+    font-size: 26px;
+}
+
+.db-hero p {
+    max-width: 860px;
+    margin: 10px 0 0;
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.db-table-grid {
+    display: grid;
+    gap: 18px;
+}
+
+.db-card {
+    padding: 0;
+}
+
+.db-card-header {
+    padding: 20px 22px 12px;
+    border-bottom: 1px solid #eef0f3;
+}
+
+.db-card-header h3 {
+    margin: 0;
+    color: #111827;
+    font-size: 17px;
+}
+
+.db-card-header p {
+    margin: 8px 0 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.db-card table {
+    min-width: 760px;
+}
+
+.db-card td:nth-child(3) {
+    white-space: normal;
+    line-height: 1.5;
+}

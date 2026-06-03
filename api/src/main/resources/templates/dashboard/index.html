@@ -20,7 +20,10 @@
 
         <nav class="nav" aria-label="사이드 메뉴">
             <div class="nav-group" data-group="career">
-                <button class="nav-toggle" type="button" aria-expanded="true"><span>CAREER</span><span class="nav-arrow">▾</span></button>
+                <button class="nav-toggle" type="button" aria-expanded="true">
+                    <span>CAREER</span>
+                    <span class="nav-arrow">▾</span>
+                </button>
                 <div class="nav-items">
                     <a class="nav-link active" href="#projects"><span class="nav-icon">P</span><span class="nav-text">프로젝트 경력</span></a>
                     <a class="nav-link" href="#overview"><span class="nav-icon">S</span><span class="nav-text">경력 요약</span></a>
@@ -29,20 +32,27 @@
                     <a class="nav-link" href="#workflow"><span class="nav-icon">W</span><span class="nav-text">개발 흐름</span></a>
                 </div>
             </div>
+
             <div class="nav-group" data-group="demo">
-                <button class="nav-toggle" type="button" aria-expanded="true"><span>DEMO MENU</span><span class="nav-arrow">▾</span></button>
+                <button class="nav-toggle" type="button" aria-expanded="true">
+                    <span>LIVE DEMO</span>
+                    <span class="nav-arrow">▾</span>
+                </button>
                 <div class="nav-items">
-                    <a class="nav-link" href="#scope"><span class="nav-icon">G</span><span class="nav-text">상품/카테고리</span></a>
-                    <a class="nav-link" href="#scope"><span class="nav-icon">O</span><span class="nav-text">주문/결제</span></a>
-                    <a class="nav-link" href="#scope"><span class="nav-icon">N</span><span class="nav-text">알림톡 Queue</span></a>
-                    <a class="nav-link" href="#scope"><span class="nav-icon">L</span><span class="nav-text">API 로그</span></a>
+                    <a class="nav-link" href="/admin/payment-operations"><span class="nav-icon">PG</span><span class="nav-text">PG Mock 콘솔</span></a>
+                    <a class="nav-link" href="/admin/database-spec"><span class="nav-icon">DB</span><span class="nav-text">DB 명세</span></a>
+                    <a class="nav-link" href="/swagger-ui/index.html" target="_blank" rel="noopener"><span class="nav-icon">SW</span><span class="nav-text">Swagger API</span></a>
                 </div>
             </div>
+
             <div class="nav-group" data-group="system">
-                <button class="nav-toggle" type="button" aria-expanded="true"><span>SYSTEM</span><span class="nav-arrow">▾</span></button>
+                <button class="nav-toggle" type="button" aria-expanded="true">
+                    <span>SYSTEM</span>
+                    <span class="nav-arrow">▾</span>
+                </button>
                 <div class="nav-items">
                     <a class="nav-link" href="#workflow"><span class="nav-icon">A</span><span class="nav-text">권한/인증</span></a>
-                    <a class="nav-link" href="#workflow"><span class="nav-icon">B</span><span class="nav-text">배치 모니터링</span></a>
+                    <a class="nav-link" href="#workflow"><span class="nav-icon">B</span><span class="nav-text">배치/Queue</span></a>
                 </div>
             </div>
         </nav>
@@ -61,10 +71,12 @@
     <main class="main">
         <header class="topbar">
             <div class="top-left">
-                <button class="menu-btn sidebar-toggle-btn" type="button" onclick="toggleSidebar()" aria-label="사이드바 접기/펼치기"><span class="toggle-icon">‹</span></button>
+                <button class="menu-btn sidebar-toggle-btn" type="button" onclick="toggleSidebar()" aria-label="사이드바 접기/펼치기">
+                    <span class="toggle-icon">‹</span>
+                </button>
                 <div class="page-title">
-                    <h1>운영 백오피스와 API 연동 경험을 정리한 포트폴리오</h1>
-                    <p>실무 프로젝트의 문제 해결 방식과 Spring Boot 기반 구현 범위를 함께 확인할 수 있습니다.</p>
+                    <h1>PG 결제부터 매출·외부 전송·알림톡까지 이어지는 운영형 백오피스</h1>
+                    <p>실무에서 다룬 결제/매출/연동 경험을 Spring Boot 기반 포트폴리오로 재구성했습니다.</p>
                 </div>
             </div>
             <div class="top-actions">
@@ -78,56 +90,81 @@
                 <div class="impact-copy">
                     <div class="eyebrow">BACKOFFICE CAREER DASHBOARD</div>
                     <h2>
-                        운영 흐름을 이해하고<br />
-                        연동 기준까지 맞추는 서버 개발자
+                        결제 이후의 운영 흐름까지<br />
+                        끝까지 추적하는 백오피스 개발자
                     </h2>
                     <p>
-                        C#/.NET 기반 백오피스 및 API 개발 경험을 중심으로 POS/KIOSK 영업관리,
-                        결제·매출 데이터 처리, 외부 시스템 연동, DB 마이그레이션 업무를 수행했습니다.
-                        Dapper 기반 SQL 작성, 운영 관리자 화면 개발, MS-SQL에서 MySQL/MariaDB 환경으로의 전환 경험을
-                        Java/Spring Boot 백오피스 구조로 다시 정리했습니다.
+                        단순히 결제 요청만 처리하는 것이 아니라, 결제 승인/취소 이후 매출 거래가 어떻게 남고,
+                        외부 시스템 전송 대상이 어떻게 생성되며, 실패 건을 어떻게 다시 처리할 수 있는지까지
+                        운영 관점에서 정리했습니다.
+                        <br /><br />
+                        실제 PG 운영망과 직접 연동하지는 않지만, Mock PG를 통해 결제 승인/취소 흐름을 재현하고
+                        매출 원장, 외부 전송 상태, 알림톡 Queue, 로그 추적 구조로 이어지는 백오피스 흐름을 구현하고 있습니다.
                     </p>
+
                     <div class="hero-keywords" aria-label="핵심 업무 키워드">
                         <span>POS/KIOSK</span>
                         <span>Payment API</span>
-                        <span>운영자 화면</span>
-                        <span>협업 기반 API 설계</span>
-                        <span>운영 개선</span>
+                        <span>Mock PG</span>
+                        <span>Sales Ledger</span>
+                        <span>External Send</span>
+                        <span>AlimTalk Queue</span>
+                        <span>Batch / Scheduler</span>
+                        <span>Retry</span>
+                        <span>API Log</span>
+                        <span>Admin Backoffice</span>
                         <span>Dapper SQL</span>
-                        <span>MySQL/MariaDB 전환</span>
-                        <span>Sales Admin</span>
-                        <span>Batch / Queue</span>
-                        <span>DB Migration</span>
+                        <span>Spring Boot</span>
                     </div>
+
                     <div class="hero-actions">
                         <button class="primary-action" type="button" onclick="document.querySelector('.table-wrap').scrollIntoView({behavior:'smooth', block:'start'})">프로젝트 목록 보기</button>
                         <button class="btn" type="button" onclick="document.getElementById('scope').scrollIntoView({behavior:'smooth', block:'start'})">구현 범위 보기</button>
+                        <a class="primary-action" href="/admin/payment-operations">PG Mock 콘솔 열기</a>
                     </div>
                 </div>
 
                 <div class="impact-stats" aria-label="경력 요약 지표">
                     <div class="stat-card">
-                        <strong>운영 백오피스</strong>
-                        <span>상품/카테고리 · 결제 · 영업관리</span>
+                        <strong>결제 처리</strong>
+                        <span>승인 · 취소 · 중복 요청 방지</span>
                     </div>
                     <div class="stat-card">
-                        <strong>연동 API</strong>
-                        <span>POS/KIOSK · PG · SAP · 회원/포인트</span>
+                        <strong>매출 데이터</strong>
+                        <span>SALE/CANCEL 거래 원장 관리</span>
                     </div>
                     <div class="stat-card">
-                        <strong>기술 확장</strong>
-                        <span>C#/.NET → Java/Spring Boot</span>
+                        <strong>외부 연동</strong>
+                        <span>전송 대상 · 실패 · 재처리 이력</span>
                     </div>
                     <div class="stat-card">
-                        <strong>운영 개선</strong>
-                        <span>동기화 성능 · 보안 취약점 조치</span>
+                        <strong>알림/배치</strong>
+                        <span>Queue · Retry · 발송 상태 추적</span>
                     </div>
                     <div class="stat-note">
-                        <span>PORTFOLIO</span>
-                        <strong>백오피스 구조화</strong>
-                        <p>api/core 멀티모듈, Session 인증, DB 기반 메뉴 관리로 구현했습니다.</p>
+                        <span>PORTFOLIO FLOW</span>
+                        <strong>결제 → 매출 → 전송 → 알림</strong>
+                        <p>운영자가 실제로 확인해야 하는 상태값과 로그 중심으로 구성했습니다.</p>
                     </div>
                 </div>
+            </section>
+
+            <section class="demo-entry reveal delayed" aria-label="포트폴리오 구현 데모 바로가기">
+                <a class="demo-entry-card primary" href="/admin/payment-operations">
+                    <span>LIVE DEMO</span>
+                    <strong>PG Mock 운영 콘솔</strong>
+                    <p>결제 승인, 취소, 매출 거래 생성, 외부 전송 상태를 화면에서 확인합니다.</p>
+                </a>
+                <a class="demo-entry-card" href="/admin/database-spec">
+                    <span>DATABASE</span>
+                    <strong>DB 명세 보기</strong>
+                    <p>결제, 매출 원장, 외부 전송, 알림톡 Queue, 로그 테이블의 역할을 정리했습니다.</p>
+                </a>
+                <a class="demo-entry-card" href="/swagger-ui/index.html" target="_blank" rel="noopener">
+                    <span>API DOCS</span>
+                    <strong>Swagger API 문서</strong>
+                    <p>요청/응답 DTO와 주요 상태값을 API 기준으로 확인할 수 있습니다.</p>
+                </a>
             </section>
 
             <div class="search-row reveal delayed">
@@ -150,21 +187,31 @@
                 <div class="section-head">
                     <div class="section-label">SUMMARY</div>
                     <h2>경력 요약</h2>
-                    <p>운영성 데이터를 다루는 백오피스 개발자로서의 경험과 확장 방향을 분리해 정리했습니다.</p>
+                    <p>운영 중인 서비스에서 결제, 매출, 외부 연동, 관리자 화면을 다뤄온 경험을 중심으로 정리했습니다.</p>
                 </div>
+
                 <div class="overview-grid">
                     <div class="plain-panel">
                         <div class="plain-row"><span>이름</span><strong>권예은</strong></div>
-                        <div class="plain-row"><span>직무</span><strong>운영형 서버 / 백오피스 API 개발자</strong></div>
+                        <div class="plain-row"><span>직무</span><strong>백오피스 / API 서버 개발자</strong></div>
                         <div class="plain-row"><span>주요 경력</span><strong>KG이니시스 · 티쿤글로벌</strong></div>
-                        <div class="plain-row"><span>업무 도메인</span><strong>POS/KIOSK 운영, 상품/카테고리 관리, 결제, 영업관리, 회원/포인트, 외부 API 연동, 알림/배치</strong></div>
+                        <div class="plain-row">
+                            <span>업무 도메인</span>
+                            <strong>POS/KIOSK 운영, 결제 API, 매출 처리, 회원/포인트, 알림톡 Agent, 외부 시스템 연동, 운영 관리자 화면</strong>
+                        </div>
                     </div>
+
                     <div class="plain-panel">
                         <div class="plain-row"><span>Main Stack</span><strong>C# · .NET · MS-SQL · jQuery · Dapper</strong></div>
                         <div class="plain-row"><span>Expansion</span><strong>Java · Spring Boot · JPA · H2/MySQL Profile</strong></div>
-                        <div class="plain-row"><span>강점</span><strong>운영자 화면 흐름, POS/KIOSK 담당자와의 API 기준 조율, 성능 병목 개선, 상태값 설계, 외부 연동 데이터 정합성, 로그/배치 추적</strong></div>
-                        <div class="plain-row"><span>협업 방식</span><strong>기획자가 정의한 화면 흐름과 퍼블리셔 작업물을 기반으로 사용성·검증 기준·API 응답 구조를 함께 맞춘 경험</strong></div>
-                        <div class="plain-row"><span>Portfolio</span><strong>실무 경험을 Spring Boot 멀티모듈 백오피스 구조로 재구성</strong></div>
+                        <div class="plain-row">
+                            <span>강점</span>
+                            <strong>운영 화면 흐름 이해, 결제/매출 상태값 설계, 외부 연동 실패 추적, SQL 기반 데이터 처리, 담당자 간 API 기준 조율</strong>
+                        </div>
+                        <div class="plain-row">
+                            <span>Portfolio</span>
+                            <strong>실무에서 다룬 결제/매출/연동 흐름을 Spring Boot 기반으로 재구성</strong>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -172,49 +219,118 @@
             <section class="section" id="operations">
                 <div class="section-head">
                     <div class="section-label">OPERATION IMPROVEMENT</div>
-                    <h2>운영 개선 경험</h2>
-                    <p>대규모 신규 구축보다 운영 중인 서비스의 요청, 보안 조치, 성능 병목을 안정적으로 개선한 경험을 대표 사례 중심으로 정리했습니다.</p>
+                    <h2>운영 개선 경험과 포트폴리오 반영</h2>
+                    <p>
+                        기존 운영 업무에서 다뤘던 문제를 그대로 나열하기보다,
+                        이번 포트폴리오에서 어떤 구조로 다시 풀어냈는지 중심으로 정리했습니다.
+                    </p>
                 </div>
+
                 <div class="table-wrap">
                     <table class="scope-table">
                         <thead>
                         <tr>
-                            <th>운영 과제</th>
-                            <th>상황</th>
-                            <th>개선 방식</th>
-                            <th>어필 포인트</th>
+                            <th>실무에서 다룬 문제</th>
+                            <th>당시 상황</th>
+                            <th>개선 또는 처리 방식</th>
+                            <th>포트폴리오에 반영한 부분</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr>
-                            <td>상품 마스터 동기화 성능 개선</td>
-                            <td>패키지 키오스크/테이블오더 사이트에 노출될 상품 데이터를 마스터 기준으로 동기화하는 과정에서, 전체 상품을 건별 insert/update 하며 약 15분 이상 소요되는 병목이 있었습니다.</td>
-                            <td>상품별로 반복 실행되던 update 흐름을 줄이고, 변경 대상 중심의 일괄 처리와 조건 기반 update 방식으로 개선해 수행 시간을 10초대로 단축했습니다.</td>
-                            <td>운영 병목을 직접 발견하고 SQL 처리 방식과 동기화 흐름을 개선한 경험</td>
+                            <td>외부 API 요청/응답 추적</td>
+                            <td>
+                                PG, SAP, POS/KIOSK, 회원/포인트 API처럼 외부 시스템과 주고받는 데이터는
+                                실패 시 원인 확인이 늦어지면 운영 대응이 어려웠습니다.
+                            </td>
+                            <td>
+                                요청/응답 전문, 처리 결과, 실패 사유, 처리 시간을 분리해 확인할 수 있도록
+                                로그 기준을 잡고 운영자가 추적할 수 있는 흐름을 중요하게 봤습니다.
+                            </td>
+                            <td>
+                                PG API 로그, 외부 전송 이력, requestId, elapsedMs, 실패 사유 컬럼을 두고
+                                결제부터 외부 전송까지 같은 흐름으로 추적할 수 있게 구성했습니다.
+                            </td>
                         </tr>
+
                         <tr>
-                            <td>ISMS 심사 대응 및 취약점 조치</td>
-                            <td>운영 서비스 보안 점검 과정에서 취약점 조치 요청이 발생했고, 기존 기능을 유지하면서 보안 기준을 맞춰야 했습니다.</td>
-                            <td>취약 구간을 확인하고 입력값 검증, 권한/접근 흐름, 보안 기준에 맞는 수정 사항을 운영 영향 범위 안에서 반영했습니다.</td>
-                            <td>보안 심사 대응과 운영 안정성을 함께 고려한 유지보수 경험</td>
+                            <td>알림톡 Agent 발송 처리</td>
+                            <td>
+                                알림톡 발송은 단순 API 호출이 아니라, 발송 대상 조회, 발송 요청, 성공/실패 처리,
+                                재시도 기준이 함께 필요한 운영성 작업이었습니다.
+                            </td>
+                            <td>
+                                DB Polling 방식으로 발송 대상을 가져오고, 대량 발송 시 병렬 처리 구조를 적용해
+                                발송 처리량과 안정성을 함께 고려했습니다.
+                            </td>
+                            <td>
+                                결제 승인, 취소, 외부 전송 실패 같은 이벤트가 발생하면 알림톡 Queue를 생성하고,
+                                Mock Agent가 Queue를 처리하는 구조로 연결할 예정입니다.
+                            </td>
                         </tr>
+
+                        <tr>
+                            <td>상품 마스터 동기화 성능 개선</td>
+                            <td>
+                                상품 마스터 데이터를 POS/KIOSK 또는 테이블오더 쪽으로 동기화하는 과정에서
+                                전체 데이터를 건별로 처리하면 시간이 오래 걸리고 운영 대기 시간이 길어졌습니다.
+                            </td>
+                            <td>
+                                반복 update 흐름을 줄이고, 변경 대상 중심의 일괄 처리 방식으로 개선해
+                                동기화 시간을 단축했습니다.
+                            </td>
+                            <td>
+                                매출 통계와 외부 전송 재처리에서도 같은 관점으로 접근합니다.
+                                운영 화면에서 매번 원장을 풀스캔하지 않도록 집계 테이블, View, 인덱스 적용을 검토합니다.
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td>결제/취소 상태값 관리</td>
+                            <td>
+                                결제는 승인 성공만 중요한 것이 아니라, 취소, 부분 취소, 중복 요청,
+                                실패 후 재요청 같은 예외 흐름까지 같이 관리해야 했습니다.
+                            </td>
+                            <td>
+                                원거래와 취소거래를 구분하고, 요청 중복 여부와 상태 변경 가능 여부를 기준으로
+                                처리 흐름을 나누는 방식이 필요했습니다.
+                            </td>
+                            <td>
+                                결제 승인 시 SALE 거래를 생성하고, 취소 성공 시 원매출을 수정하지 않고
+                                CANCEL 음수 거래를 별도로 남기는 원장형 구조로 구현했습니다.
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td>운영 관리자 화면 개선</td>
+                            <td>
+                                운영자가 쓰는 화면은 단순 CRUD보다 상태 확인, 필터링, 재처리, 엑셀 다운로드,
+                                실패 원인 확인 같은 기능이 실제 업무에 더 중요했습니다.
+                            </td>
+                            <td>
+                                요청 의도를 확인한 뒤 화면 입력 흐름, 검증 조건, 조회 조건,
+                                외부 시스템 반영 기준을 함께 맞춰 기능을 수정했습니다.
+                            </td>
+                            <td>
+                                PG Mock 콘솔에서 결제 상태, 매출 생성 여부, 외부 전송 상태,
+                                실패 로그를 한 화면에서 확인할 수 있도록 구성했습니다.
+                            </td>
+                        </tr>
+
                         <tr>
                             <td>SQL Injection 위험 구간 개선</td>
-                            <td>동적 SQL 사용 구간에서 입력값이 SQL 문장에 직접 결합될 수 있는 위험이 있었습니다.</td>
-                            <td>Dapper 기반 파라미터 바인딩을 적용해 입력값과 SQL 문장을 분리하고, 반복되는 조회/수정 로직의 안전성을 높였습니다.</td>
-                            <td>레거시 SQL을 다루면서 보안성과 유지보수성을 함께 개선한 경험</td>
-                        </tr>
-                        <tr>
-                            <td>개인정보 동의 / 고객 확인 흐름 정리</td>
-                            <td>고객 동의 이력, 인증 코드 발송, 주소지 입력, POS API의 동의 고객 리스트 조회가 여러 시스템을 거쳐 처리되어야 했습니다.</td>
-                            <td>고객, 서버, DB, POS API, POS 간 처리 순서를 시퀀스 기준으로 정리하고 연동 담당자와 확인 기준을 맞췄습니다.</td>
-                            <td>운영 프로세스를 문서화하고 시스템 간 데이터 흐름을 정리한 경험</td>
-                        </tr>
-                        <tr>
-                            <td>운영 요청 기반 기능 개선</td>
-                            <td>운영자가 사용하는 관리자 화면에서 상품, 카테고리, 프로모션, 상태값 관련 수정 요청이 수시로 발생했습니다.</td>
-                            <td>요청 의도를 확인한 뒤 화면 입력 흐름, 검증 조건, 저장/조회 API, POS/KIOSK 반영 기준을 함께 점검해 반영했습니다.</td>
-                            <td>작은 운영 요청도 데이터 정합성과 외부 연동 영향까지 고려해 처리한 경험</td>
+                            <td>
+                                동적 SQL 사용 구간에서 입력값이 SQL 문장에 직접 결합될 경우
+                                보안 취약점과 유지보수 문제가 발생할 수 있었습니다.
+                            </td>
+                            <td>
+                                Dapper 파라미터 바인딩을 적용해 입력값과 SQL 문장을 분리하고,
+                                반복되는 조회/수정 로직을 안전하게 정리했습니다.
+                            </td>
+                            <td>
+                                포트폴리오에서는 JPA와 SQL Mapper를 역할에 따라 분리하고,
+                                검색 조건과 통계 조회 조건은 파라미터 기반으로 처리하는 구조를 사용합니다.
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -225,103 +341,212 @@
                 <div class="section-head">
                     <div class="section-label">IMPLEMENTATION SCOPE</div>
                     <h2>포트폴리오 구현 범위 및 진행 상태</h2>
-                    <p>실무에서 다룬 PG 결제, 매출 데이터 처리, 외부 시스템 연동 경험을 바탕으로 Spring Boot 프로젝트에 운영형 거래 처리 모듈을 단계적으로 구현하고 있습니다. 각 항목은 완료/진행중/진행예정 상태로 구분했습니다.</p>
+                    <p>
+                        기능을 단순히 많이 나열하기보다, 현재 화면에서 바로 확인 가능한 부분과
+                        구현 중인 부분, 이후 확장 예정인 부분을 분리했습니다.
+                    </p>
                 </div>
+
                 <div class="table-wrap">
                     <table class="scope-table">
                         <thead>
                         <tr>
                             <th>구분</th>
                             <th>상태</th>
-                            <th>구현 범위</th>
-                            <th>경력과의 연결점</th>
-                            <th>기술적으로 보여줄 부분</th>
+                            <th>현재 구현 범위</th>
+                            <th>실무 경험과 연결되는 부분</th>
+                            <th>화면/기술적으로 보여줄 부분</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr>
                             <td>Mock PG 결제 승인</td>
-                            <td><span class="status-badge planned">진행예정</span></td>
-                            <td>이니시스 PC 일반결제 표준결제 흐름을 참고하여 실제 PG 연동 없이 Mock 결제 승인 흐름을 구현할 예정입니다. 결제요청 파라미터 생성, 인증결과 수신 Mock, 승인요청 Mock, 승인결과 검증, 결제 거래 저장 흐름으로 구성합니다.</td>
-                            <td>티쿤글로벌에서 Stripe/Paymentwall 등 PG 연동을 경험했고, 결제 승인 이후 주문·매출 상태를 관리했던 경험과 연결됩니다.</td>
-                            <td>Mock PG Client, 결제 상태관리, idempotencyKey 기반 중복 요청 방지, 결제 승인 실패 처리, PG API 로그 저장</td>
+                            <td><span class="status-badge done">시연 가능</span></td>
+                            <td>
+                                실제 PG 운영망과 직접 통신하지 않고, Mock PG Client를 통해 결제 승인 성공/실패 흐름을 재현합니다.
+                                결제 요청 후 승인 결과가 생성되고, 성공 건은 결제 거래로 저장됩니다.
+                            </td>
+                            <td>
+                                티쿤글로벌에서 Stripe/Paymentwall 연동을 경험했고,
+                                결제 승인 이후 주문/매출 상태를 관리했던 경험과 연결됩니다.
+                            </td>
+                            <td>
+                                결제 상태값, 승인 결과 저장, idempotencyKey 기반 중복 요청 방지,
+                                PG 요청/응답 로그 저장
+                            </td>
                         </tr>
+
                         <tr>
                             <td>Mock PG 결제 취소</td>
-                            <td><span class="status-badge planned">진행예정</span></td>
-                            <td>승인된 결제 건에 대해 전체 취소 또는 부분 취소 요청을 처리하는 Mock 기능을 구현할 예정입니다. 취소 성공 시 결제취소 이력을 저장하고, 음수 매출 거래를 별도로 생성합니다.</td>
-                            <td>PG 결제 취소 및 상태관리 경험과 연결됩니다. 원거래를 직접 수정하지 않고 취소 거래를 별도로 남기는 운영성 데이터 처리 흐름을 보여줍니다.</td>
-                            <td>결제취소 상태관리, 누적 취소금액 검증, 중복 취소 방지, CANCEL 음수 거래 생성, 실패 시 매출 미생성</td>
+                            <td><span class="status-badge done">시연 가능</span></td>
+                            <td>
+                                승인된 결제 건에 대해 전체 취소 또는 부분 취소를 요청할 수 있습니다.
+                                취소 성공 시 취소 이력을 저장하고, 매출 원장에는 CANCEL 거래를 별도로 생성합니다.
+                            </td>
+                            <td>
+                                결제 취소는 원거래를 단순 수정하는 것이 아니라,
+                                취소 요청 이력과 매출 반영 여부를 함께 추적해야 하는 운영 흐름과 연결됩니다.
+                            </td>
+                            <td>
+                                누적 취소금액 검증, 중복 취소 방지, 부분 취소 처리,
+                                CANCEL 음수 거래 생성
+                            </td>
                         </tr>
+
                         <tr>
                             <td>매출 거래 원장</td>
-                            <td><span class="status-badge planned">진행예정</span></td>
-                            <td>결제 승인 성공 시 SALE 거래를 생성하고, 결제 취소 성공 시 CANCEL 거래를 음수 금액으로 별도 생성하는 매출 원장 구조를 구현할 예정입니다. 원매출은 수정하지 않고 거래 이력을 보존합니다.</td>
-                            <td>휘슬러코리아 영업관리 시스템에서 POS에서 전달된 매출 데이터를 서버에서 처리하고 SAP 전송 및 통계 조회로 연결했던 경험과 연결됩니다.</td>
-                            <td>거래 원장 설계, SALE/CANCEL/ADJUST 상태관리, 원거래 연결, @Transactional, BigDecimal 금액 처리</td>
+                            <td><span class="status-badge done">시연 가능</span></td>
+                            <td>
+                                결제 승인 성공 시 SALE 거래를 생성하고,
+                                결제 취소 성공 시 원매출을 수정하지 않고 CANCEL 음수 거래를 별도로 남깁니다.
+                                이후 통계와 정산은 이 거래 원장을 기준으로 계산할 수 있도록 구성했습니다.
+                            </td>
+                            <td>
+                                휘슬러코리아 영업관리 시스템에서 POS 매출 데이터를 처리하고,
+                                SAP 전송 및 통계 조회로 연결했던 경험과 연결됩니다.
+                            </td>
+                            <td>
+                                SALE/CANCEL 거래 구분, 원거래 연결, BigDecimal 금액 처리,
+                                @Transactional 기반 저장 흐름
+                            </td>
                         </tr>
-                        <tr>
-                            <td>외부 전송 관리</td>
-                            <td><span class="status-badge planned">진행예정</span></td>
-                            <td>매출 거래 생성 후 외부 시스템 전송 대상을 생성하고, 전송 성공/실패/재전송 상태를 관리하는 기능을 구현할 예정입니다. 실제 외부 시스템이 아닌 Mock 전송으로 처리합니다.</td>
-                            <td>SAP/CIP/PG/알림톡 등 외부 시스템 연동 경험과 연결됩니다. 실무에서 중요한 전송 실패, 재처리, 이력 추적 흐름을 포트폴리오에서 보여줍니다.</td>
-                            <td>READY/SENDING/SENT/FAILED/RETRY_READY 상태관리, 전송 이력 저장, 재전송 제한, requestKey 중복 방지</td>
-                        </tr>
+
                         <tr>
                             <td>PG API 로그</td>
-                            <td><span class="status-badge planned">진행예정</span></td>
-                            <td>결제요청, 인증결과 수신, 승인요청, 승인결과, 일반취소 요청/응답을 로그로 저장하는 구조를 구현할 예정입니다. 실제 전문이나 민감정보는 저장하지 않고 Mock 요청/응답 기준으로 관리합니다.</td>
-                            <td>PG 연동 및 외부 API 요청/응답을 추적해야 하는 운영 경험과 연결됩니다.</td>
-                            <td>pg_api_log, request_id, elapsed_ms, 민감정보 제외, 실패 원인 추적</td>
+                            <td><span class="status-badge done">시연 가능</span></td>
+                            <td>
+                                결제 요청, 승인 응답, 취소 요청, 취소 응답을 로그로 남깁니다.
+                                포트폴리오에서는 민감정보를 제외한 Mock 요청/응답 기준으로 저장합니다.
+                            </td>
+                            <td>
+                                외부 API 연동 업무에서 장애 원인을 확인하려면
+                                요청/응답 로그와 처리 시간이 남아 있어야 했던 경험과 연결됩니다.
+                            </td>
+                            <td>
+                                pg_api_log, requestId, elapsedMs, resultCode, resultMessage,
+                                실패 원인 추적
+                            </td>
                         </tr>
+
                         <tr>
-                            <td>PG 수수료 정책 관리</td>
-                            <td><span class="status-badge planned">진행예정</span></td>
-                            <td>PG사와 결제수단별 수수료율, 고정수수료, 적용기간을 관리하는 기능을 구현할 예정입니다. 정산 배치 실행 시 유효한 수수료 정책을 조회하여 수수료를 계산합니다.</td>
-                            <td>실제 정산 전체를 담당한 것은 아니지만, 결제/매출 경험을 바탕으로 정산 흐름을 이해하고 확장 구현하는 포트폴리오 기능입니다.</td>
-                            <td>수수료 정책 기간 중복 검증, feeRate/fixedFee 계산, BigDecimal, 수수료 snapshot 저장</td>
+                            <td>외부 전송 관리</td>
+                            <td><span class="status-badge progress">구현 중</span></td>
+                            <td>
+                                매출 거래가 생성되면 외부 시스템으로 전달해야 할 전송 대상을 생성합니다.
+                                실제 SAP나 외부 운영망과 직접 연동하지 않고, Mock 전송으로 성공/실패를 재현합니다.
+                            </td>
+                            <td>
+                                SAP, CIP, PG, POS/KIOSK 등 외부 시스템 연동 경험과 연결됩니다.
+                                운영에서는 실패 건을 놓치지 않고 재처리하는 구조가 중요했습니다.
+                            </td>
+                            <td>
+                                READY/SENDING/SENT/FAILED/RETRY_READY 상태관리,
+                                전송 이력 저장, 실패 사유, 재전송 횟수 제한
+                            </td>
                         </tr>
+
                         <tr>
-                            <td>정산 배치</td>
-                            <td><span class="status-badge planned">진행예정</span></td>
-                            <td>정산은 실시간 확정이 아니라 배치로 DRAFT 정산 데이터를 생성하도록 구현할 예정입니다. 미정산 매출 거래를 기준으로 총매출, 취소금액, 조정금액, 수수료, 정산금액을 계산하고 정산 상세 snapshot을 저장합니다.</td>
-                            <td>실무에서 정산 전체를 직접 담당한 것은 아니지만, 매출/결제/외부전송 경험을 기반으로 운영형 백오피스 흐름을 확장해 구현하는 영역입니다.</td>
-                            <td>@Scheduled 또는 Spring Batch, settlement_batch_log, DRAFT 정산 생성, settlement_detail snapshot, 실패 로그 저장</td>
+                            <td>알림톡 Queue / Mock Agent</td>
+                            <td><span class="status-badge progress">구현 중</span></td>
+                            <td>
+                                결제 승인, 결제 취소, 외부 전송 실패 같은 이벤트가 발생하면
+                                알림톡 발송 Queue를 생성하는 구조로 확장합니다.
+                                실제 알림톡 API 대신 Mock Agent가 Queue를 읽어 발송 성공/실패를 처리합니다.
+                            </td>
+                            <td>
+                                알림톡 Agent 개발 당시 DB Polling, API 연동, 대량 발송 처리,
+                                실패 재처리 흐름을 다뤘던 경험과 직접 연결됩니다.
+                            </td>
+                            <td>
+                                alimtalk_queue, alimtalk_send_history,
+                                READY/SENDING/SUCCESS/FAILED/RETRY 상태,
+                                Scheduler 또는 Batch 기반 발송 처리
+                            </td>
                         </tr>
+
                         <tr>
-                            <td>정산 확정/지급 처리</td>
-                            <td><span class="status-badge planned">진행예정</span></td>
-                            <td>배치로 생성된 DRAFT 정산을 운영자가 검토 후 CONFIRMED로 확정하고, 이후 PAID 상태로 지급 처리하는 흐름을 구현할 예정입니다. 확정 이후에는 재계산을 제한합니다.</td>
-                            <td>운영자가 상태를 확인하고 확정 처리하는 관리자 백오피스 경험과 연결됩니다.</td>
-                            <td>DRAFT/CONFIRMED/PAID 상태관리, 확정 후 재계산 제한, 정산 로그, 감사 로그</td>
+                            <td>API 로그 / 운영 로그</td>
+                            <td><span class="status-badge progress">구현 중</span></td>
+                            <td>
+                                PG 로그, 외부 전송 로그, 알림톡 발송 로그, 관리자 처리 로그를 분리해
+                                운영 이슈 발생 시 어떤 단계에서 실패했는지 확인할 수 있도록 정리합니다.
+                            </td>
+                            <td>
+                                운영 이슈 대응, 실패 원인 확인, 담당자 간 원인 공유를 위해
+                                로그 기준을 맞췄던 경험과 연결됩니다.
+                            </td>
+                            <td>
+                                requestId, batchJobId, MDC, Global Exception,
+                                audit_log, external_send_history, settlement_log
+                            </td>
                         </tr>
+
                         <tr>
                             <td>매출/정산 통계</td>
-                            <td><span class="status-badge planned">진행예정</span></td>
-                            <td>SALE, CANCEL, ADJUST 거래를 기준으로 총매출, 취소금액, 조정금액, 순매출, 수수료, 정산금액을 조회하는 통계 API를 구현할 예정입니다.</td>
-                            <td>Dapper 기반으로 매출 조회 및 집계 쿼리를 작성했던 경험과 연결됩니다.</td>
-                            <td>MyBatis 또는 SQL Mapper 기반 통계 쿼리, 상태별 집계, 기간 조건 조회, BigDecimal 집계</td>
+                            <td><span class="status-badge planned">확장 예정</span></td>
+                            <td>
+                                SALE, CANCEL 거래를 기준으로 총매출, 취소금액, 순매출, 수수료,
+                                정산 예정 금액을 조회하는 통계 화면을 확장할 예정입니다.
+                            </td>
+                            <td>
+                                Dapper 기반으로 매출 조회 및 집계 쿼리를 작성했던 경험과 연결됩니다.
+                            </td>
+                            <td>
+                                SQL Mapper 기반 통계 쿼리, 기간 조건 조회,
+                                상태별 집계, 인덱스 설계, 100만 건 테스트 데이터
+                            </td>
                         </tr>
+
                         <tr>
-                            <td>API 로그/운영관리</td>
-                            <td><span class="status-badge progress">진행중</span></td>
-                            <td>외부 API 요청/응답 로그, 전송 이력, 정산 배치 로그, 정산 처리 로그, 관리자 감사 로그를 분리해 관리하는 구조를 구현합니다.</td>
-                            <td>운영 이슈 대응, 로그 조회, 실패 원인 확인 경험과 연결됩니다.</td>
-                            <td>request_id, batch_job_id, MDC, Global Exception, pg_api_log, external_send_history, settlement_batch_log, settlement_log, audit_log</td>
+                            <td>PG 수수료 정책</td>
+                            <td><span class="status-badge planned">확장 예정</span></td>
+                            <td>
+                                PG사와 결제수단별 수수료율, 적용 기간을 관리하고,
+                                정산 계산 시점의 수수료 정책을 snapshot으로 남기는 구조를 확장할 예정입니다.
+                            </td>
+                            <td>
+                                실제 정산 전체를 담당했다고 표현하기보다는,
+                                결제/매출 경험을 바탕으로 정산 흐름을 이해하고 확장 구현하는 영역으로 정리했습니다.
+                            </td>
+                            <td>
+                                수수료 기간 중복 검증, feeRate/fixedFee 계산,
+                                BigDecimal, 수수료 snapshot
+                            </td>
                         </tr>
+
                         <tr>
-                            <td>알림톡 Queue</td>
-                            <td><span class="status-badge review">검토중</span></td>
-                            <td>알림톡 Agent 개발 경험을 반영할 수 있는 후보 기능입니다. 다만 현재 1차 포트폴리오 핵심 흐름은 PG 결제, 매출, 외부전송, 정산이므로 후순위로 검토합니다.</td>
-                            <td>알림톡 Agent 개발 경험과 연결되지만, 현재 핵심 흐름과는 분리된 기능입니다.</td>
-                            <td>Queue 테이블, Retry, Batch Monitor, 발송 상태관리</td>
+                            <td>정산 배치</td>
+                            <td><span class="status-badge planned">확장 예정</span></td>
+                            <td>
+                                미정산 매출 거래를 기준으로 DRAFT 정산 데이터를 생성하고,
+                                운영자가 확인 후 확정/지급 처리하는 흐름을 확장할 예정입니다.
+                            </td>
+                            <td>
+                                정산 업무를 직접 담당했다고 과장하기보다,
+                                매출/결제/외부전송 이후 운영에서 필요한 후속 흐름으로 구현합니다.
+                            </td>
+                            <td>
+                                Spring Scheduler 또는 Batch, settlement_batch_log,
+                                DRAFT/CONFIRMED/PAID 상태관리, 확정 후 재계산 제한
+                            </td>
                         </tr>
+
                         <tr class="scope-excluded">
                             <td>상품/카테고리·프로모션 관리</td>
-                            <td><span class="status-badge excluded">제외</span></td>
-                            <td>이번 포트폴리오의 핵심은 단순 운영 데이터 CRUD가 아니라 PG 결제 승인/취소, 매출 거래 원장, 외부 전송 실패/재처리, 정산 배치 흐름을 보여주는 것이므로 1차 범위에서 제외했습니다.</td>
-                            <td>기존 운영 경험과는 연결되지만 현재 구현 우선순위에서는 제외합니다.</td>
-                            <td>후속 확장 범위로만 검토</td>
+                            <td><span class="status-badge excluded">1차 제외</span></td>
+                            <td>
+                                상품/카테고리/프로모션 관리 경험은 있지만,
+                                이번 포트폴리오의 핵심은 결제 이후 운영 데이터 흐름을 보여주는 것입니다.
+                                따라서 1차 범위에서는 제외했습니다.
+                            </td>
+                            <td>
+                                POS/KIOSK 운영 경험과 연결되지만,
+                                현재 프로젝트에서는 범위가 넓어지는 것을 막기 위해 제외합니다.
+                            </td>
+                            <td>
+                                후속 확장 시 상품 마스터, 카테고리, 판매 상태,
+                                POS/KIOSK 반영 기준으로 확장 가능
+                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -332,43 +557,107 @@
                 <div class="section-head">
                     <div class="section-label">DEVELOPMENT FLOW</div>
                     <h2>개발 진행 흐름</h2>
-                    <p>기존 프로젝트 구조를 유지하면서, 실무형 거래 처리 흐름이 보이도록 단계별로 구현합니다.</p>
+                    <p>
+                        현재 포트폴리오는 PG 결제 흐름을 먼저 시연 가능하게 만들고,
+                        이후 외부 전송, 알림톡 Queue, 통계/정산 순서로 확장하는 방향입니다.
+                    </p>
                 </div>
+
                 <div class="workflow-list">
                     <div class="workflow-step">
-                        <div class="workflow-step-head"><span class="workflow-no">01</span><span class="status-badge done">완료</span></div>
-                        <strong>기존 프로젝트 구조 분석 및 구현 범위 정리</strong>
-                        <p>기존 프로젝트의 패키지 구조, 화면 방식, DB 접근 방식, API 응답 포맷을 확인하고 포트폴리오 구현 범위를 PG 결제, 매출 거래, 외부 전송, 정산 배치 중심으로 정리했습니다.</p>
+                        <div class="workflow-step-head">
+                            <span class="workflow-no">01</span>
+                            <span class="status-badge done">완료</span>
+                        </div>
+                        <strong>프로젝트 기본 구조 및 경력 대시보드 구성</strong>
+                        <p>
+                            Spring Boot 기반 백오피스 화면 구조, 프로젝트 목록, 상세 모달,
+                            DB 명세 화면, Swagger API 문서 연결을 구성했습니다.
+                        </p>
                     </div>
+
                     <div class="workflow-step">
-                        <div class="workflow-step-head"><span class="workflow-no">02</span><span class="status-badge progress">진행중</span></div>
-                        <strong>API 로그 및 운영 로그 구조 정리</strong>
-                        <p>외부 요청/응답 로그, 예외 로그, 관리자 행위 로그를 구분하고 request_id 기반으로 추적할 수 있는 구조를 정리합니다.</p>
+                        <div class="workflow-step-head">
+                            <span class="workflow-no">02</span>
+                            <span class="status-badge done">완료</span>
+                        </div>
+                        <strong>Mock PG 승인/취소 기본 흐름 구현</strong>
+                        <p>
+                            실제 PG 운영망과 연결하지 않고, Mock PG Client를 통해 승인/취소 성공 및 실패 흐름을 재현했습니다.
+                            승인 성공 시 결제 거래와 매출 SALE 거래가 생성됩니다.
+                        </p>
                     </div>
+
                     <div class="workflow-step">
-                        <div class="workflow-step-head"><span class="workflow-no">03</span><span class="status-badge planned">진행예정</span></div>
-                        <strong>Mock PG 결제 승인/취소 흐름 구현</strong>
-                        <p>이니시스 표준결제 흐름을 참고하되 실제 PG 연동은 하지 않고, 결제요청·인증결과·승인요청·승인결과 검증·일반취소 흐름을 Mock으로 구현합니다.</p>
+                        <div class="workflow-step-head">
+                            <span class="workflow-no">03</span>
+                            <span class="status-badge done">완료</span>
+                        </div>
+                        <strong>매출 거래 원장 구조 구현</strong>
+                        <p>
+                            승인 건은 SALE, 취소 건은 CANCEL 음수 거래로 저장합니다.
+                            원매출을 직접 수정하지 않고 거래 이력을 보존하는 방식으로 구성했습니다.
+                        </p>
                     </div>
+
                     <div class="workflow-step">
-                        <div class="workflow-step-head"><span class="workflow-no">04</span><span class="status-badge planned">진행예정</span></div>
-                        <strong>매출 거래 원장 및 외부 전송 상태관리 구현</strong>
-                        <p>결제 승인 성공 시 SALE 거래를 생성하고, 결제 취소 성공 시 CANCEL 음수 거래를 별도 생성합니다. 이후 외부 전송 대상 생성, 전송 성공/실패, 재전송 이력을 관리합니다.</p>
+                        <div class="workflow-step-head">
+                            <span class="workflow-no">04</span>
+                            <span class="status-badge progress">진행 중</span>
+                        </div>
+                        <strong>외부 전송 실패/재처리 흐름 구현</strong>
+                        <p>
+                            매출 거래 생성 이후 외부 전송 대상을 만들고,
+                            Mock 전송 결과에 따라 성공/실패/재전송 상태를 관리하는 기능을 보강하고 있습니다.
+                        </p>
                     </div>
+
                     <div class="workflow-step">
-                        <div class="workflow-step-head"><span class="workflow-no">05</span><span class="status-badge planned">진행예정</span></div>
-                        <strong>PG 수수료 정책 및 정산 배치 구현</strong>
-                        <p>PG사/결제수단별 수수료 정책을 관리하고, 미정산 매출 거래를 기준으로 배치가 DRAFT 정산 데이터를 생성하도록 구현합니다.</p>
+                        <div class="workflow-step-head">
+                            <span class="workflow-no">05</span>
+                            <span class="status-badge progress">진행 중</span>
+                        </div>
+                        <strong>알림톡 Queue / Mock Agent 연결</strong>
+                        <p>
+                            결제 승인, 취소, 외부 전송 실패 같은 이벤트를 알림톡 Queue로 연결하고,
+                            Mock Agent가 Queue를 읽어 발송 성공/실패와 재시도 이력을 남기는 구조를 구현하고 있습니다.
+                        </p>
                     </div>
+
                     <div class="workflow-step">
-                        <div class="workflow-step-head"><span class="workflow-no">06</span><span class="status-badge planned">진행예정</span></div>
-                        <strong>정산 확정/지급 및 통계 조회 구현</strong>
-                        <p>DRAFT 정산을 운영자가 확정하고 지급 처리할 수 있도록 상태 흐름을 구현합니다. 매출/취소/수수료/정산금액은 SQL Mapper 기반 통계 조회로 제공합니다.</p>
+                        <div class="workflow-step-head">
+                            <span class="workflow-no">06</span>
+                            <span class="status-badge planned">진행 예정</span>
+                        </div>
+                        <strong>매출/정산 통계 및 성능 테스트</strong>
+                        <p>
+                            SALE/CANCEL 거래 원장을 기준으로 매출 통계를 조회하고,
+                            100만 건 테스트 데이터를 넣어 일반 조회, View, 집계 테이블 방식의 성능 차이를 비교할 예정입니다.
+                        </p>
                     </div>
+
                     <div class="workflow-step">
-                        <div class="workflow-step-head"><span class="workflow-no">07</span><span class="status-badge planned">진행예정</span></div>
+                        <div class="workflow-step-head">
+                            <span class="workflow-no">07</span>
+                            <span class="status-badge planned">진행 예정</span>
+                        </div>
+                        <strong>정산 배치 및 수수료 정책 확장</strong>
+                        <p>
+                            PG사/결제수단별 수수료 정책을 관리하고,
+                            미정산 매출을 기준으로 DRAFT 정산 데이터를 생성하는 배치 흐름을 확장할 예정입니다.
+                        </p>
+                    </div>
+
+                    <div class="workflow-step">
+                        <div class="workflow-step-head">
+                            <span class="workflow-no">08</span>
+                            <span class="status-badge planned">진행 예정</span>
+                        </div>
                         <strong>테스트 코드 및 README 정리</strong>
-                        <p>결제 승인/취소, 매출 생성, 외부 전송 실패, 정산 배치, 정산 확정 등 핵심 흐름에 대한 테스트를 작성하고 README에 실무 경험과 포트폴리오 구현 범위를 명확히 정리합니다.</p>
+                        <p>
+                            결제 승인/취소, 매출 생성, 외부 전송 실패, 알림톡 발송 실패,
+                            정산 배치 흐름을 테스트 코드와 README로 정리할 예정입니다.
+                        </p>
                     </div>
                 </div>
             </section>

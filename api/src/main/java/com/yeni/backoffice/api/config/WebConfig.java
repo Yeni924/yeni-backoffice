@@ -20,7 +20,15 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/admin/**", "/api/admin/**")
                 .excludePathPatterns(
                         "/admin/login",
+                        "/admin/payment-operations",
+                        "/admin/database-spec",
+                        "/api/payment-bridge/**",
                         "/api/admin/auth/**",
+                        "/api/admin/sales/**",
+                        "/api/admin/external-send-requests/**",
+                        "/api/admin/pg-fee-policies/**",
+                        "/api/admin/payment-statistics/**",
+                        "/api/admin/settlements/**",
                         "/css/**",
                         "/js/**",
                         "/images/**",

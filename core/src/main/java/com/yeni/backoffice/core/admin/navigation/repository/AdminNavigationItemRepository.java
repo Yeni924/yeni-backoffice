@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AdminNavigationItemRepository extends JpaRepository<AdminNavigationItem, Long> {
@@ -27,5 +28,7 @@ public interface AdminNavigationItemRepository extends JpaRepository<AdminNaviga
     List<AdminNavigationItem> findAllNotDeleted();
 
     boolean existsByItemUrl(String itemUrl);
+    boolean existsByItemUrlAndIsDeletedFalse(String itemUrl);
+    Optional<AdminNavigationItem> findByItemUrlAndIsDeletedFalse(String itemUrl);
 }
 
