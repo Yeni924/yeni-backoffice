@@ -1,0 +1,92 @@
+<svg width="1120" height="620" viewBox="0 0 1120 620" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Payment Gateway Bridge 결제 처리 구조도</title>
+  <desc id="desc">쇼핑몰 주문 시스템, Payment Gateway Bridge API 서버, PG Adapter, 외부 PG API, 결제 트랜잭션 저장소, Webhook 수신 흐름을 표현한 구조도</desc>
+  <rect width="1120" height="620" rx="28" fill="#FBFBFF"/>
+  <rect x="34" y="34" width="1052" height="552" rx="24" fill="white" stroke="#E8E9F0"/>
+
+  <text x="68" y="82" fill="#1F2128" font-family="Pretendard, Arial, sans-serif" font-size="28" font-weight="800">Payment Gateway Bridge 처리 구조</text>
+  <text x="68" y="112" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="15">결제 시작, 완료 검증, 전체/부분 취소를 공통 API 흐름으로 분리하고 PG별 상세 처리를 PGB 서버에서 담당</text>
+
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#1C1E26" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2L10 6L2 10" fill="none" stroke="#6F5CFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrowGray" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2L10 6L2 10" fill="none" stroke="#8A8F9D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="182" width="218" height="132" rx="18" fill="#FFFFFF" stroke="#DDD8FF"/>
+    <rect x="92" y="207" width="48" height="48" rx="14" fill="#F2F0FF"/>
+    <text x="108" y="238" fill="#6F5CFF" font-family="Arial, sans-serif" font-size="22" font-weight="800">01</text>
+    <text x="154" y="222" fill="#1F2128" font-family="Pretendard, Arial, sans-serif" font-size="18" font-weight="800">쇼핑몰 주문 시스템</text>
+    <text x="154" y="248" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13">결제 시작 / 취소 요청</text>
+    <text x="92" y="286" fill="#555966" font-family="Pretendard, Arial, sans-serif" font-size="13">공통 Payment API 호출</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="450" y="162" width="246" height="172" rx="20" fill="#FFFFFF" stroke="#CFC8FF" stroke-width="1.5"/>
+    <rect x="476" y="190" width="58" height="58" rx="16" fill="#6F5CFF"/>
+    <text x="491" y="226" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="23" font-weight="800">PGB</text>
+    <text x="550" y="206" fill="#1F2128" font-family="Pretendard, Arial, sans-serif" font-size="20" font-weight="800">PGB API Server</text>
+    <text x="550" y="234" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13">결제 흐름 공통화</text>
+    <rect x="476" y="270" width="194" height="34" rx="17" fill="#F7F8FB"/>
+    <text x="496" y="292" fill="#424753" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700">검증 · 취소 · 상태 관리</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="810" y="170" width="230" height="154" rx="18" fill="#FFFFFF" stroke="#E8E9F0"/>
+    <text x="838" y="205" fill="#1F2128" font-family="Pretendard, Arial, sans-serif" font-size="18" font-weight="800">PG Adapter Layer</text>
+    <rect x="836" y="228" width="78" height="34" rx="17" fill="#F2F0FF"/>
+    <text x="859" y="250" fill="#6F5CFF" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="800">Stripe</text>
+    <rect x="924" y="228" width="88" height="34" rx="17" fill="#F4F5F8"/>
+    <text x="941" y="250" fill="#555966" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="800">Paymentwall</text>
+    <text x="838" y="292" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13">PG별 API 스펙 차이 흡수</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="450" y="408" width="246" height="114" rx="18" fill="#FFFFFF" stroke="#E8E9F0"/>
+    <text x="480" y="444" fill="#1F2128" font-family="Pretendard, Arial, sans-serif" font-size="18" font-weight="800">Transaction Store</text>
+    <text x="480" y="472" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13">요청 / 완료 / 취소 상태 추적</text>
+    <text x="480" y="498" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13">사이트별 PG ID 기준 관리</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="810" y="408" width="230" height="114" rx="18" fill="#FFFFFF" stroke="#E8E9F0"/>
+    <text x="838" y="444" fill="#1F2128" font-family="Pretendard, Arial, sans-serif" font-size="18" font-weight="800">Webhook Receiver</text>
+    <text x="838" y="472" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13">결제 완료 이벤트 수신</text>
+    <text x="838" y="498" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13">PG 상태 재조회 후 내부 상태 변경</text>
+  </g>
+
+  <path d="M288 238 C348 238 374 238 436 238" stroke="#6F5CFF" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="316" y="223" fill="#6F5CFF" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="800">1. 결제 시작</text>
+
+  <path d="M696 238 C742 238 762 238 798 238" stroke="#6F5CFF" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="714" y="223" fill="#6F5CFF" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="800">2. PG 호출</text>
+
+  <path d="M925 324 C925 354 925 374 925 396" stroke="#8A8F9D" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+  <text x="942" y="366" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700">Webhook</text>
+
+  <path d="M810 465 C764 465 742 465 708 465" stroke="#8A8F9D" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+  <text x="716" y="450" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700">상태 재조회</text>
+
+  <path d="M573 334 C573 358 573 378 573 396" stroke="#6F5CFF" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <text x="594" y="368" fill="#6F5CFF" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="800">3. 트랜잭션 기록</text>
+
+  <path d="M450 486 C384 486 330 442 286 324" stroke="#8A8F9D" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7 7" marker-end="url(#arrowGray)"/>
+  <text x="296" y="462" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700">검증 결과 반영</text>
+
+  <rect x="78" y="386" width="260" height="94" rx="18" fill="#F7F8FB" stroke="#E8E9F0"/>
+  <text x="104" y="420" fill="#1F2128" font-family="Pretendard, Arial, sans-serif" font-size="16" font-weight="800">취소 API 흐름</text>
+  <text x="104" y="448" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13">전체 취소 / 부분 취소 요청을 PGB에서</text>
+  <text x="104" y="471" fill="#626977" font-family="Pretendard, Arial, sans-serif" font-size="13">PG 취소 API 호출과 상태 기록으로 처리</text>
+
+  <path d="M338 432 C388 432 408 432 438 432" stroke="#6F5CFF" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <rect x="70" y="535" width="970" height="1" fill="#E8E9F0"/>
+  <text x="76" y="564" fill="#7C8392" font-family="Pretendard, Arial, sans-serif" font-size="12">보안상 실제 도메인, 운영 URL, 서버 정보, DB 접속 정보, Key 값, 실제 테이블명은 구조도에 포함하지 않았습니다.</text>
+</svg>
