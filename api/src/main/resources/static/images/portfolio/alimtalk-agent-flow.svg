@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="640" viewBox="0 0 1120 640" role="img" aria-labelledby="title desc">
+  <title id="title">알림톡 Agent 대량 발송 처리 구조도</title>
+  <desc id="desc">발송 요청 DB에서 Agent가 발송 대상을 조회하고, 즉시 발송과 이벤트 대량 발송을 분리한 뒤 병렬 발송, 결과 저장, 실패 재처리까지 이어지는 흐름</desc>
+  <defs>
+    <style>
+      .bg{fill:#fbfbff}
+      .panel{fill:#fff;stroke:#e8e9f0;stroke-width:2}
+      .primary{fill:#6254d9}
+      .soft{fill:#f1efff;stroke:#ddd8ff;stroke-width:2}
+      .node{fill:#fff;stroke:#dfe2ec;stroke-width:2}
+      .accent{fill:#f7f8fb;stroke:#e8e9f0;stroke-width:2}
+      .danger{fill:#fff7ed;stroke:#fed7aa;stroke-width:2}
+      .success{fill:#ecfdf5;stroke:#bbf7d0;stroke-width:2}
+      .title{font:700 28px Arial,'Noto Sans KR',sans-serif;fill:#1f2128}
+      .sub{font:500 15px Arial,'Noto Sans KR',sans-serif;fill:#656b78}
+      .label{font:700 16px Arial,'Noto Sans KR',sans-serif;fill:#1f2128}
+      .small{font:500 13px Arial,'Noto Sans KR',sans-serif;fill:#656b78}
+      .white{fill:#fff}
+      .arrow{stroke:#8a8f9d;stroke-width:2.4;fill:none;marker-end:url(#arrow)}
+      .arrowPrimary{stroke:#6254d9;stroke-width:3;fill:none;marker-end:url(#arrowPrimary)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#8a8f9d"/>
+    </marker>
+    <marker id="arrowPrimary" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#6254d9"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1120" height="640" rx="28"/>
+  <text x="56" y="64" class="title">AlimTalk Agent 대량 발송 처리 흐름</text>
+  <text x="56" y="94" class="sub">DB Polling → 대량 발송 분리 → 병렬 발송 → 결과 저장 → 실패 재처리</text>
+
+  <rect x="56" y="128" width="226" height="114" rx="18" class="soft"/>
+  <text x="88" y="170" class="label">발송 요청 DB</text>
+  <text x="88" y="198" class="small">즉시 발송 / 이벤트 예약</text>
+  <text x="88" y="220" class="small">발송 대상 데이터 적재</text>
+
+  <rect x="344" y="128" width="232" height="114" rx="18" class="node"/>
+  <text x="376" y="168" class="label">AlimTalk Agent</text>
+  <text x="376" y="196" class="small">TimerCallback 주기 실행</text>
+  <text x="376" y="218" class="small">DB Polling으로 대상 조회</text>
+
+  <rect x="638" y="88" width="210" height="88" rx="18" class="accent"/>
+  <text x="668" y="124" class="label">일반 즉시 발송</text>
+  <text x="668" y="150" class="small">일반 Agent / DB 흐름</text>
+
+  <rect x="638" y="208" width="210" height="88" rx="18" class="soft"/>
+  <text x="668" y="244" class="label">이벤트 대량 발송</text>
+  <text x="668" y="270" class="small">전용 Agent / DB 분리</text>
+
+  <rect x="910" y="208" width="154" height="88" rx="18" class="node"/>
+  <text x="940" y="244" class="label">Queue 적재</text>
+  <text x="940" y="270" class="small">MSG_ID 기준 관리</text>
+
+  <rect x="166" y="360" width="232" height="112" rx="18" class="node"/>
+  <text x="198" y="400" class="label">병렬 발송 처리</text>
+  <text x="198" y="428" class="small">Parallel.ForEach</text>
+  <text x="198" y="450" class="small">MaxDegreeOfParallelism = 10</text>
+
+  <rect x="468" y="360" width="206" height="112" rx="18" class="soft"/>
+  <text x="500" y="400" class="label">카카오 API 호출</text>
+  <text x="500" y="428" class="small">비동기 발송 요청</text>
+  <text x="500" y="450" class="small">응답 결과 수신</text>
+
+  <rect x="744" y="332" width="210" height="88" rx="18" class="success"/>
+  <text x="776" y="368" class="label">성공 처리</text>
+  <text x="776" y="394" class="small">Queue 제거 / 결과 기록</text>
+
+  <rect x="744" y="452" width="210" height="88" rx="18" class="danger"/>
+  <text x="776" y="488" class="label">실패 처리</text>
+  <text x="776" y="514" class="small">실패 목록 저장 / 재시도</text>
+
+  <rect x="56" y="538" width="1008" height="56" rx="16" class="panel"/>
+  <circle cx="88" cy="566" r="11" class="primary"/>
+  <text x="108" y="571" class="small">5만 건 발송 테스트 기준 약 19분 수행, 실행 중 CPU 평균 10~20% / 최대 33% 관찰</text>
+
+  <path d="M282 185 H338" class="arrowPrimary"/>
+  <path d="M576 176 C612 176 612 132 632 132" class="arrow"/>
+  <path d="M576 206 C612 206 612 252 632 252" class="arrowPrimary"/>
+  <path d="M848 252 H904" class="arrowPrimary"/>
+  <path d="M987 296 C987 330 432 330 398 392" class="arrowPrimary"/>
+  <path d="M398 416 H462" class="arrowPrimary"/>
+  <path d="M674 398 C706 398 708 376 738 376" class="arrow"/>
+  <path d="M674 432 C706 432 708 496 738 496" class="arrow"/>
+  <path d="M744 522 C628 590 270 568 190 472" class="arrow"/>
+</svg>
