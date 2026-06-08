@@ -67,10 +67,10 @@
             columns: [
                 {title: "ID", field: "id", width: 80, hozAlign: "center"},
                 {title: "주문번호", field: "orderNo", minWidth: 190},
-                {title: "PG 거래번호", field: "tid", minWidth: 180},
+                {title: "PG 거래번호", field: "tid", minWidth: 180, formatter: emptyFormatter},
                 {title: "승인금액", field: "approvedAmount", hozAlign: "right", formatter: moneyFormatter},
                 {title: "취소금액", field: "canceledAmount", hozAlign: "right", formatter: moneyFormatter},
-                {title: "상태", field: "paymentStatus", width: 150, formatter: statusFormatter, headerFilter: "select", headerFilterParams: {values: paymentStatusFilterValues()}},
+                {title: "상태", field: "paymentStatus", width: 160, formatter: statusFormatter, headerFilter: "select", headerFilterParams: {values: paymentStatusFilterValues()}},
                 {title: "승인일시", field: "approvedAt", minWidth: 170, formatter: dateTimeFormatter}
             ]
         });
@@ -84,7 +84,7 @@
             columns: [
                 {title: "ID", field: "id", width: 80, hozAlign: "center"},
                 {title: "매출 ID", field: "salesId", width: 100, hozAlign: "center"},
-                {title: "요청 키", field: "requestKey", minWidth: 190},
+                {title: "요청키", field: "requestKey", minWidth: 190},
                 {title: "대상 시스템", field: "targetSystem", minWidth: 160, formatter: targetSystemFormatter},
                 {title: "상태", field: "sendStatus", width: 130, formatter: statusFormatter, headerFilter: "select", headerFilterParams: {values: followupStatusFilterValues()}},
                 {title: "재시도", field: "retryCount", width: 90, hozAlign: "center"},
@@ -101,8 +101,8 @@
             columns: [
                 {title: "ID", field: "id", width: 80, hozAlign: "center"},
                 {title: "결제 ID", field: "paymentId", width: 100, hozAlign: "center"},
-                {title: "메시지 키", field: "messageKey", minWidth: 190},
-                {title: "이벤트", field: "eventType", width: 110, formatter: eventTypeFormatter},
+                {title: "메시지키", field: "messageKey", minWidth: 190},
+                {title: "이벤트", field: "eventType", width: 120, formatter: eventTypeFormatter},
                 {title: "상태", field: "status", width: 130, formatter: statusFormatter, headerFilter: "select", headerFilterParams: {values: followupStatusFilterValues()}},
                 {title: "재시도", field: "retryCount", width: 90, hozAlign: "center"},
                 {title: "마지막 오류", field: "lastErrorMessage", minWidth: 180, formatter: emptyFormatter}
@@ -117,7 +117,7 @@
             placeholder: "조회된 복구 작업이 없습니다.",
             columns: [
                 {title: "ID", field: "id", width: 70, hozAlign: "center"},
-                {title: "작업 키", field: "taskKey", minWidth: 190},
+                {title: "작업키", field: "taskKey", minWidth: 190},
                 {title: "결제 ID", field: "paymentId", width: 95, hozAlign: "center", formatter: emptyFormatter},
                 {title: "주문번호", field: "orderNo", minWidth: 170, formatter: emptyFormatter},
                 {title: "PG 거래번호", field: "tid", minWidth: 170, formatter: emptyFormatter},
@@ -233,6 +233,19 @@
         document.getElementById("failedExternalSendCount").textContent = summary.readyExternalSendCount + " / " + summary.failedExternalSendCount;
         document.getElementById("recoveryTaskCount").textContent = summary.recoveryTaskCount;
         document.getElementById("alimtalkQueueCount").textContent = summary.readyAlimtalkCount + " / " + summary.failedAlimtalkCount;
+
+        const totalRows = Number(summary.approvedPaymentCount || 0)
+            + Number(summary.salesTransactionCount || 0)
+            + Number(summary.readyExternalSendCount || 0)
+            + Number(summary.failedExternalSendCount || 0)
+            + Number(summary.recoveryTaskCount || 0)
+            + Number(summary.readyAlimtalkCount || 0)
+            + Number(summary.failedAlimtalkCount || 0);
+        const emptyGuide = document.getElementById("emptyGuide");
+        if (emptyGuide) {
+            emptyGuide.hidden = totalRows > 0;
+        }
+
         tables.payments.setData(payments);
         tables.external.setData(externalRequests);
         tables.alimtalk.setData(alimtalkQueues);
@@ -250,9 +263,9 @@
         timeline.innerHTML = "";
         (result.timelineSteps || []).forEach(function (step) {
             const li = document.createElement("li");
-            li.innerHTML = "<strong>" + step.stepName + " · " + statusLabel(step.status) + "</strong>"
-                + step.description
-                + (step.referenceId ? "<br><span>참조: " + step.referenceId + "</span>" : "");
+            li.innerHTML = "<strong>" + escapeHtml(step.stepName) + " · " + statusLabel(step.status) + "</strong>"
+                + escapeHtml(step.description || "")
+                + (step.referenceId ? "<br><span>참조: " + escapeHtml(step.referenceId) + "</span>" : "");
             timeline.appendChild(li);
         });
     }
@@ -340,7 +353,7 @@
 
     function targetSystemFormatter(cell) {
         const labels = {
-            SALES_OPERATION_MOCK: "매출운영시스템"
+            SALES_OPERATION_MOCK: "매출 운영 시스템"
         };
         return labels[cell.getValue()] || cell.getValue() || "-";
     }
@@ -455,7 +468,7 @@
             body: JSON.stringify(payload || {})
         });
         const response = window.AppLoading
-            ? await window.AppLoading.track(request, "요청 처리 중입니다")
+            ? await window.AppLoading.track(request, "시나리오 결과를 반영하고 있어요")
             : await request;
         return parseResponse(response);
     }
@@ -463,7 +476,7 @@
     async function getJson(url) {
         const request = fetch(url);
         const response = window.AppLoading
-            ? await window.AppLoading.track(request, "데이터 조회 중입니다")
+            ? await window.AppLoading.track(request, "운영 데이터를 불러오고 있어요")
             : await request;
         return parseResponse(response);
     }
@@ -485,5 +498,14 @@
 
     function formatMoney(value) {
         return Number(value || 0).toLocaleString("ko-KR") + "원";
+    }
+
+    function escapeHtml(value) {
+        return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
     }
 })();

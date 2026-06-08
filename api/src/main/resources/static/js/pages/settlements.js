@@ -72,8 +72,8 @@
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({targetDate: targetDate})
             });
-            const response = window.AppLoading
-                ? await window.AppLoading.track(request, "정산 배치를 실행 중입니다")
+        const response = window.AppLoading
+                ? await window.AppLoading.track(request, "정산 데이터를 계산하고 있어요")
                 : await request;
             await parseApiResponse(response);
             await refresh();
@@ -90,7 +90,7 @@
 
         const request = fetch("/admin/api/settlements" + (params.toString() ? "?" + params.toString() : ""));
         const response = window.AppLoading
-            ? await window.AppLoading.track(request, "정산 명세를 조회 중입니다")
+            ? await window.AppLoading.track(request, "정산 명세를 불러오고 있어요")
             : await request;
         rows = await parseApiResponse(response);
         applyFilters();
@@ -148,7 +148,7 @@
     async function openSettlementDetail(row) {
         const request = fetch("/admin/api/settlements/" + row.id);
         const response = window.AppLoading
-            ? await window.AppLoading.track(request, "정산 상세를 불러오는 중입니다")
+            ? await window.AppLoading.track(request, "정산 상세를 정리하고 있어요")
             : await request;
         const page = await parseApiResponse(response);
         document.getElementById("settlementDetailTitle").textContent = "정산 명세 #" + row.id;

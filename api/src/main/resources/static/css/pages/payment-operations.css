@@ -72,6 +72,18 @@
     background: #ffffff;
 }
 
+.demo-notice,
+.empty-guide {
+    padding: 14px 16px;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 13px;
+    font-weight: 750;
+    line-height: 1.6;
+}
+
 .operator-note h3 {
     margin: 0 0 10px;
     color: #111827;
@@ -226,6 +238,34 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+}
+
+.scenario-group {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.scenario-group + .scenario-group {
+    margin-top: 12px;
+}
+
+.scenario-group h4 {
+    margin: 0;
+    color: #111827;
+    font-size: 14px;
+}
+
+.scenario-group p,
+.section-help {
+    margin: 0;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.55;
 }
 
 .scenario-button-grid button {
@@ -403,12 +443,14 @@
 
 .message-box {
     margin-top: 14px;
-    padding: 12px;
-    border-radius: 12px;
-    background: #eff6ff;
-    color: #1d4ed8;
+    padding: 11px 13px;
+    border: 1px solid #dbe4f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #475569;
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 750;
+    line-height: 1.55;
 }
 
 .table-section {

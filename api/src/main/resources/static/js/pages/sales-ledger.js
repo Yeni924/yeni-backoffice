@@ -97,7 +97,7 @@
 
         const request = fetch("/admin/api/sales-ledger?" + params.toString());
         const response = window.AppLoading
-            ? await window.AppLoading.track(request, "매출 원장을 조회 중입니다")
+            ? await window.AppLoading.track(request, "매출 원장을 정리하고 있어요")
             : await request;
         lastPage = await parseApiResponse(response);
         table.setData(lastPage.data || []);
@@ -148,7 +148,7 @@
             fetchJson("/admin/api/sales-ledger/" + row.id + "/links")
         ]);
         const [detail, links] = window.AppLoading
-            ? await window.AppLoading.track(request, "상세 정보를 불러오는 중입니다")
+            ? await window.AppLoading.track(request, "거래 상세를 불러오고 있어요")
             : await request;
         document.getElementById("salesDetailTitle").textContent = "매출 영수증 #" + detail.id;
         document.getElementById("salesDetailBody").innerHTML = renderReceipt(detail, links);

@@ -1,4 +1,3 @@
-// Mobile sidebar toggle
 function toggleSidebar() {
     const sidebar = document.getElementById("sidebar");
     if (sidebar) {
@@ -6,11 +5,10 @@ function toggleSidebar() {
     }
 }
 
-// Close sidebar when clicking outside on mobile
 document.addEventListener("click", function(event) {
     const sidebar = document.getElementById("sidebar");
     const mobileMenuBtn = document.querySelector(".mobile-menu-btn");
-    
+
     if (sidebar && mobileMenuBtn && window.innerWidth <= 768) {
         if (!sidebar.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
             sidebar.classList.remove("open");
@@ -39,8 +37,8 @@ window.AppLoading = (function () {
         overlay.setAttribute("aria-live", "polite");
         overlay.innerHTML = '<div class="global-loading-box">'
             + '<div class="global-progress"><span></span></div>'
-            + '<strong>데이터 조회 중입니다</strong>'
-            + '<p>잠시만 기다려 주세요.</p>'
+            + '<strong>화면을 준비하고 있어요</strong>'
+            + '<p>필요한 데이터를 불러오는 중입니다.</p>'
             + '</div>';
         document.body.appendChild(overlay);
         messageText = overlay.querySelector("strong");
