@@ -76,6 +76,31 @@ const modalTitle = document.getElementById("modalTitle");
 const modalSub = document.getElementById("modalSub");
 const modalBody = document.getElementById("modalBody");
 const modalClose = document.getElementById("modalClose");
+let dashboardLoading = null;
+
+function showDashboardLoading(message) {
+    if (!dashboardLoading) {
+        dashboardLoading = document.createElement("div");
+        dashboardLoading.className = "dashboard-loading";
+        dashboardLoading.setAttribute("role", "status");
+        dashboardLoading.setAttribute("aria-live", "polite");
+        dashboardLoading.innerHTML = '<div class="dashboard-loading-box">'
+            + '<div class="dashboard-progress"><span></span></div>'
+            + '<strong></strong>'
+            + '<p>잠시만 기다려 주세요.</p>'
+            + '</div>';
+        document.body.appendChild(dashboardLoading);
+    }
+
+    dashboardLoading.querySelector("strong").textContent = message || "데이터를 불러오는 중입니다";
+    dashboardLoading.classList.add("open");
+}
+
+function hideDashboardLoading() {
+    if (dashboardLoading) {
+        dashboardLoading.classList.remove("open");
+    }
+}
 
 function escapeHtml(value) {
     return String(value || "").replace(/[&<>\"]/g, function (char) {
@@ -187,8 +212,8 @@ function initProjectTable() {
 
     projectTable = new Tabulator(projectTableEl, {
         data: projects,
-        layout: "fitDataStretch",
-        responsiveLayout: false,
+        layout: "fitColumns",
+        responsiveLayout: "collapse",
 
         renderVertical: "basic",
         placeholder: "검색 조건에 맞는 프로젝트가 없습니다.",
@@ -672,13 +697,18 @@ function bindEvents() {
 
 setupSidebarTooltips();
 restoreSidebarState();
+showDashboardLoading("프로젝트 데이터를 불러오는 중입니다");
 initProjectTable();
 animateCounters();
 setupScrollSpy();
 bindEvents();
 
 if (projectTable) {
-    setTimeout(renderProjects, 0);
+    setTimeout(function () {
+        renderProjects();
+        hideDashboardLoading();
+    }, 0);
 } else {
     renderProjects();
+    hideDashboardLoading();
 }

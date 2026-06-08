@@ -23,6 +23,62 @@ document.addEventListener("DOMContentLoaded", function() {
     initializeAdminLogout();
 });
 
+window.AppLoading = (function () {
+    let activeCount = 0;
+    let overlay = null;
+    let messageText = null;
+
+    function ensureOverlay() {
+        if (overlay) {
+            return overlay;
+        }
+
+        overlay = document.createElement("div");
+        overlay.className = "global-loading";
+        overlay.setAttribute("role", "status");
+        overlay.setAttribute("aria-live", "polite");
+        overlay.innerHTML = '<div class="global-loading-box">'
+            + '<div class="global-progress"><span></span></div>'
+            + '<strong>데이터 조회 중입니다</strong>'
+            + '<p>잠시만 기다려 주세요.</p>'
+            + '</div>';
+        document.body.appendChild(overlay);
+        messageText = overlay.querySelector("strong");
+        return overlay;
+    }
+
+    function show(message) {
+        activeCount += 1;
+        ensureOverlay();
+        if (messageText && message) {
+            messageText.textContent = message;
+        }
+        overlay.classList.add("open");
+    }
+
+    function hide() {
+        activeCount = Math.max(activeCount - 1, 0);
+        if (overlay && activeCount === 0) {
+            overlay.classList.remove("open");
+        }
+    }
+
+    async function track(promise, message) {
+        show(message);
+        try {
+            return await promise;
+        } finally {
+            hide();
+        }
+    }
+
+    return {
+        show: show,
+        hide: hide,
+        track: track
+    };
+})();
+
 function initializeSidebarGroups() {
     document.querySelectorAll(".nav-group").forEach(function(group) {
         const groupCode = group.dataset.groupCode;

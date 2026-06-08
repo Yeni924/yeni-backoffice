@@ -126,6 +126,70 @@
     overflow-x: auto;
 }
 
+.global-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 82px;
+    background: rgba(15, 23, 42, 0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease;
+}
+
+.global-loading.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.global-loading-box {
+    width: min(360px, calc(100vw - 32px));
+    border: 1px solid #dbe4f0;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18);
+    padding: 16px 18px;
+}
+
+.global-loading-box strong {
+    display: block;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 850;
+}
+
+.global-loading-box p {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.global-progress {
+    height: 4px;
+    margin-bottom: 13px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e5e7eb;
+}
+
+.global-progress span {
+    display: block;
+    width: 42%;
+    height: 100%;
+    border-radius: inherit;
+    background: #2563eb;
+    animation: loading-slide 1.05s ease-in-out infinite;
+}
+
+@keyframes loading-slide {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(260%); }
+}
+
 table {
     width: 100%;
     min-width: 800px;
