@@ -278,6 +278,99 @@ export PORT="8080"
 
 실제 MID, signKey, 운영 URL, 서버 주소, API 전문, DB 접속 정보는 포함하지 않습니다. 로컬 실행에서는 포트폴리오용 Mock 값을 사용합니다.
 
+## Fly.io 데모 배포
+
+이 프로젝트는 Fly.io 데모 배포를 위해 `fly` profile을 제공합니다. Docker Desktop이 설치되어 있지 않은 개발 PC에서도 Fly.io remote builder를 사용하는 `fly deploy --remote-only` 방식으로 배포할 수 있습니다.
+
+### 전제
+
+- Fly CLI가 필요합니다.
+- Docker Desktop은 선택 사항입니다.
+- Docker Desktop이 없어도 Fly.io remote builder로 배포할 수 있습니다.
+- 배포 명령은 `fly deploy --remote-only`를 사용합니다.
+- 실제 Fly.io 배포는 사용자가 직접 실행합니다.
+
+### 배포 파일
+
+- `Dockerfile`: Java 17 기반 멀티 스테이지 빌드 파일입니다. 실제 실행 jar는 `api` 모듈의 `bootJar` 산출물을 사용합니다.
+- `api/src/main/resources/application-fly.yml`: Fly.io 데모용 profile 설정입니다. H2 console은 비활성화되어 있습니다.
+- `fly.toml.example`: Fly.io 앱 설정 예시입니다. 실제 `fly.toml`은 `fly launch --no-deploy` 실행 후 생성하는 것을 권장합니다.
+- `scripts/setup-fly.ps1`: 배포 전 파일 존재 여부, Gradle build, Docker/Fly CLI 설치 여부를 점검합니다.
+- `scripts/deploy-fly.ps1`: `fly deploy --remote-only` 기반 배포를 실행합니다.
+- `scripts/check-fly.ps1`: 배포 후 주요 URL의 HTTP status를 확인합니다.
+
+### 1. 사전 점검
+
+```powershell
+.\scripts\setup-fly.ps1
+```
+
+Docker가 설치되어 있지 않으면 로컬 Docker build만 건너뛰고, Fly.io remote builder 배포 안내를 출력합니다.
+
+### 2. Fly CLI 로그인
+
+```powershell
+fly auth login
+```
+
+### 3. Fly 앱 최초 생성
+
+```powershell
+fly launch --no-deploy
+```
+
+Region은 한국에서 가까운 `nrt`를 추천합니다. Postgres 추가 여부를 묻는 경우 1차 데모에서는 No를 선택해도 됩니다. `fly.toml`이 생성되면 `fly.toml.example`의 설정을 참고해 `SPRING_PROFILES_ACTIVE`, `JAVA_TOOL_OPTIONS`, `internal_port`, Machine 설정을 확인하세요.
+
+### 4. 배포 실행
+
+```powershell
+.\scripts\deploy-fly.ps1
+```
+
+build를 생략하려면 아래처럼 실행할 수 있습니다.
+
+```powershell
+.\scripts\deploy-fly.ps1 -SkipBuild
+```
+
+직접 배포 명령을 실행하는 경우:
+
+```powershell
+fly deploy --remote-only
+```
+
+### 5. 로그와 앱 확인
+
+```powershell
+fly logs
+fly apps open
+```
+
+### 6. 배포 후 URL 확인
+
+```powershell
+.\scripts\check-fly.ps1 -BaseUrl "https://앱이름.fly.dev"
+```
+
+주요 URL 예시:
+
+```text
+https://앱이름.fly.dev/
+https://앱이름.fly.dev/admin/login
+https://앱이름.fly.dev/admin/payment-operations
+https://앱이름.fly.dev/admin/sales-ledger
+https://앱이름.fly.dev/admin/settlements
+https://앱이름.fly.dev/admin/database-spec
+```
+
+### 데모 환경 주의사항
+
+Fly.io 배포 환경은 포트폴리오 데모용으로 H2 in-memory DB를 사용합니다. 서버가 재시작되거나 Machine이 재생성되면 데이터가 초기화될 수 있으며, PG 운영 화면의 Mock 시나리오 버튼으로 결제, 매출, 정산 데이터를 다시 생성할 수 있습니다.
+
+비용 절감을 위해 Fly.io Machine autostop/autostart 설정을 사용합니다. 일정 시간 요청이 없으면 Machine이 suspend 상태가 될 수 있고, 첫 접속 시 재시작 지연이 발생할 수 있습니다.
+
+실제 운영 환경에서는 H2가 아니라 외부 PostgreSQL 또는 MySQL을 사용하고, 관리자 비밀번호 환경변수화, PG callback signature 검증, IP allowlist, CORS 제한, CSRF 방어를 적용해야 합니다. DB 명세 화면은 운영 환경에서는 내부 관리자 전용으로만 제한하는 것을 권장합니다.
+
 ## License
 
 Portfolio Project
