@@ -15,4 +15,18 @@ public class PaymentOperationViewController {
         model.addAttribute("description", "Payment gateway adapter, sales operation and settlement mock console.");
         return "payment/operations";
     }
+
+    @GetMapping("/sales-ledger")
+    public String salesLedger(Model model) {
+        model.addAttribute("title", "Sales Ledger");
+        model.addAttribute("description", "SALE/CANCEL sales ledger generated from payment and cancel results.");
+        return "payment/sales-ledger";
+    }
+
+    @GetMapping("/settlements")
+    public String settlements(Model model) {
+        model.addAttribute("title", "Settlement Management");
+        model.addAttribute("description", "Settlement statements generated from the sales ledger.");
+        return "payment/settlements";
+    }
 }

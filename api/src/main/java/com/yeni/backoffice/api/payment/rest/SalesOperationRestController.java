@@ -1,17 +1,22 @@
 package com.yeni.backoffice.api.payment.rest;
 
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.AlimtalkQueueResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.ExternalSendResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.OperationSummaryResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgFeePolicyRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgFeePolicyResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.RecoveryTaskResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesAdjustmentRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesResponse;
+import com.yeni.backoffice.core.payment.repository.AlimtalkQueueRepository;
+import com.yeni.backoffice.core.payment.repository.PaymentRecoveryTaskRepository;
 import com.yeni.backoffice.core.payment.service.ExternalSendService;
-import com.yeni.backoffice.core.payment.service.PaymentOperationService;
 import com.yeni.backoffice.core.payment.service.PaymentStatisticsService;
 import com.yeni.backoffice.core.payment.service.PgFeePolicyService;
+import com.yeni.backoffice.core.payment.service.SalesLedgerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,24 +31,30 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping({"/api/admin", "/admin/api"})
 @Tag(name = "Sales Operation", description = "매출 거래, 외부 전송, 수수료 정책, 운영 통계 API")
 public class SalesOperationRestController {
 
-    private final PaymentOperationService paymentOperationService;
+    private final SalesLedgerService salesLedgerService;
     private final ExternalSendService externalSendService;
     private final PgFeePolicyService feePolicyService;
     private final PaymentStatisticsService statisticsService;
+    private final AlimtalkQueueRepository alimtalkQueueRepository;
+    private final PaymentRecoveryTaskRepository recoveryTaskRepository;
 
     public SalesOperationRestController(
-            PaymentOperationService paymentOperationService,
+            SalesLedgerService salesLedgerService,
             ExternalSendService externalSendService,
             PgFeePolicyService feePolicyService,
-            PaymentStatisticsService statisticsService) {
-        this.paymentOperationService = paymentOperationService;
+            PaymentStatisticsService statisticsService,
+            AlimtalkQueueRepository alimtalkQueueRepository,
+            PaymentRecoveryTaskRepository recoveryTaskRepository) {
+        this.salesLedgerService = salesLedgerService;
         this.externalSendService = externalSendService;
         this.feePolicyService = feePolicyService;
         this.statisticsService = statisticsService;
+        this.alimtalkQueueRepository = alimtalkQueueRepository;
+        this.recoveryTaskRepository = recoveryTaskRepository;
     }
 
     @GetMapping("/sales")
@@ -51,34 +62,50 @@ public class SalesOperationRestController {
     public ResponseEntity<List<SalesResponse>> sales(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(paymentOperationService.getSales(startDate, endDate));
+        return ResponseEntity.ok(salesLedgerService.getSales(startDate, endDate));
     }
 
     @PostMapping("/sales/{salesId}/adjustments")
     @Operation(summary = "매출 정산 조정 등록", description = "매출 건에 대한 정산 조정 정보를 등록합니다.")
     public ResponseEntity<Void> addAdjustment(
             @PathVariable Long salesId,
-            @RequestBody SalesAdjustmentRequest request) {
-        paymentOperationService.addSalesAdjustment(salesId, request);
+            @Valid @RequestBody SalesAdjustmentRequest request) {
+        salesLedgerService.addSalesAdjustment(salesId, request);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/external-send-requests")
+    @GetMapping({"/external-send-requests", "/external-send"})
     @Operation(summary = "외부 전송 요청 조회", description = "외부 영업관리 시스템 전송 요청 상태를 조회합니다.")
     public ResponseEntity<List<ExternalSendResponse>> externalSendRequests(@RequestParam(required = false) String status) {
         return ResponseEntity.ok(externalSendService.getRequests(status));
     }
 
-    @PostMapping("/external-send-requests/{requestId}/send")
+    @PostMapping({"/external-send-requests/{requestId}/send", "/external-send/{requestId}/send"})
     @Operation(summary = "외부 전송 실행", description = "외부 전송 요청 1건을 mock 전송 처리합니다.")
     public ResponseEntity<ExternalSendResponse> sendExternal(@PathVariable Long requestId) {
         return ResponseEntity.ok(externalSendService.send(requestId));
     }
 
-    @PostMapping("/external-send-requests/retry")
+    @PostMapping({"/external-send-requests/retry", "/external-send/retry"})
     @Operation(summary = "외부 전송 실패 재시도", description = "FAILED 상태의 외부 전송 요청을 재시도합니다.")
     public ResponseEntity<List<ExternalSendResponse>> retryExternalSend() {
         return ResponseEntity.ok(externalSendService.retryFailed());
+    }
+
+    @GetMapping({"/alimtalk-queues", "/alimtalk"})
+    @Operation(summary = "알림톡 Queue 조회", description = "결제/취소 이벤트 후속 알림톡 발송 대기열을 조회합니다.")
+    public ResponseEntity<List<AlimtalkQueueResponse>> alimtalkQueues() {
+        return ResponseEntity.ok(alimtalkQueueRepository.findAll().stream()
+                .map(AlimtalkQueueResponse::from)
+                .toList());
+    }
+
+    @GetMapping({"/payment-recovery-tasks", "/recovery"})
+    @Operation(summary = "결제 Recovery Task 조회", description = "PG 결과불명, 망취소, 외부전송/알림톡 재처리 작업을 조회합니다.")
+    public ResponseEntity<List<RecoveryTaskResponse>> recoveryTasks() {
+        return ResponseEntity.ok(recoveryTaskRepository.findAll().stream()
+                .map(RecoveryTaskResponse::from)
+                .toList());
     }
 
     @GetMapping("/pg-fee-policies")
@@ -92,7 +119,7 @@ public class SalesOperationRestController {
 
     @PostMapping("/pg-fee-policies")
     @Operation(summary = "PG 수수료 정책 등록", description = "적용 기간 중복을 검증한 뒤 수수료 정책을 등록합니다.")
-    public ResponseEntity<PgFeePolicyResponse> createFeePolicy(@RequestBody PgFeePolicyRequest request) {
+    public ResponseEntity<PgFeePolicyResponse> createFeePolicy(@Valid @RequestBody PgFeePolicyRequest request) {
         return ResponseEntity.ok(feePolicyService.createPolicy(request));
     }
 

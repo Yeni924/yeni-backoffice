@@ -6,6 +6,7 @@ import com.yeni.backoffice.core.payment.dto.PaymentDtos.SettlementStatementRespo
 import com.yeni.backoffice.core.payment.service.SettlementOperationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +21,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/settlements")
+@RequestMapping({"/api/admin/settlements", "/admin/api/settlements"})
 @Tag(name = "Settlement Operation", description = "일별 정산 배치, 정산 명세 조회, 확정, 지급 처리 API")
 public class SettlementOperationRestController {
 
@@ -32,7 +33,7 @@ public class SettlementOperationRestController {
 
     @PostMapping("/batch/run")
     @Operation(summary = "일별 정산 배치 실행", description = "미정산 매출을 기준으로 정산 초안을 생성합니다.")
-    public ResponseEntity<SettlementStatementResponse> runBatch(@RequestBody(required = false) SettlementBatchRunRequest request) {
+    public ResponseEntity<SettlementStatementResponse> runBatch(@Valid @RequestBody(required = false) SettlementBatchRunRequest request) {
         return ResponseEntity.ok(settlementOperationService.runDailySettlement(request));
     }
 

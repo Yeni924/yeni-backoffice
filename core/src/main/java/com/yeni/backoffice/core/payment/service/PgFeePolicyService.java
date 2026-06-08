@@ -1,5 +1,8 @@
 package com.yeni.backoffice.core.payment.service;
 
+import com.yeni.backoffice.core.common.exception.ConflictException;
+import com.yeni.backoffice.core.common.exception.ErrorCode;
+import com.yeni.backoffice.core.common.exception.ValidationBusinessException;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgFeePolicyRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgFeePolicyResponse;
 import com.yeni.backoffice.core.payment.entity.PgFeePolicy;
@@ -54,7 +57,7 @@ public class PgFeePolicyService {
                 || !StringUtils.hasText(request.paymentMethod()) || request.feeRate() == null
                 || request.feeRate().compareTo(BigDecimal.ZERO) < 0 || request.effectiveStartDate() == null
                 || request.effectiveEndDate() == null || request.effectiveStartDate().isAfter(request.effectiveEndDate())) {
-            throw new IllegalArgumentException("Fee policy request is invalid.");
+            throw new ValidationBusinessException(ErrorCode.SETTLEMENT_FEE_POLICY_INVALID);
         }
     }
 
@@ -69,7 +72,7 @@ public class PgFeePolicyService {
                         && !request.effectiveStartDate().isAfter(policy.getEffectiveEndDate()));
 
         if (overlapped) {
-            throw new IllegalArgumentException("Fee policy effective period is overlapped.");
+            throw new ConflictException(ErrorCode.SETTLEMENT_FEE_POLICY_INVALID, "수수료 정책 적용 기간이 기존 정책과 겹칩니다.");
         }
     }
 

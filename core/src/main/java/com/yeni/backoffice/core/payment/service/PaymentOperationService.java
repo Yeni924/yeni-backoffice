@@ -1,5 +1,10 @@
 package com.yeni.backoffice.core.payment.service;
 
+import com.yeni.backoffice.core.common.exception.BusinessException;
+import com.yeni.backoffice.core.common.exception.ConflictException;
+import com.yeni.backoffice.core.common.exception.ErrorCode;
+import com.yeni.backoffice.core.common.exception.NotFoundException;
+import com.yeni.backoffice.core.common.exception.ValidationBusinessException;
 import com.yeni.backoffice.core.payment.adapter.PaymentGatewayAdapter;
 import com.yeni.backoffice.core.payment.adapter.PaymentGatewayAdapterResolver;
 import com.yeni.backoffice.core.payment.config.InicisStdPayProperties;
@@ -7,11 +12,17 @@ import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisApproveResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisAuthResultRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisReadyRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisReadyResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.AlimtalkQueueResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.ExternalSendResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentCancelRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentCancelResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgLogResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.RecoveryTaskResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesAdjustmentRequest;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesLedgerLinksResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesLedgerPageResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesLedgerSummaryResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentApproveRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentApproveResponse;
@@ -19,16 +30,20 @@ import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentBridgeCance
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentBridgeCancelResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentQueryResponse;
 import com.yeni.backoffice.core.payment.entity.AuditLog;
+import com.yeni.backoffice.core.payment.entity.AlimtalkQueue;
 import com.yeni.backoffice.core.payment.entity.ExternalSendRequest;
 import com.yeni.backoffice.core.payment.entity.PaymentAuthSession;
 import com.yeni.backoffice.core.payment.entity.PaymentCancel;
+import com.yeni.backoffice.core.payment.entity.PaymentRecoveryTask;
 import com.yeni.backoffice.core.payment.entity.PaymentTransaction;
 import com.yeni.backoffice.core.payment.entity.PgApiLog;
 import com.yeni.backoffice.core.payment.entity.SalesTransaction;
 import com.yeni.backoffice.core.payment.entity.SettlementAdjustment;
+import com.yeni.backoffice.core.payment.enums.AlimtalkStatus;
 import com.yeni.backoffice.core.payment.enums.CancelStatus;
 import com.yeni.backoffice.core.payment.enums.CancelType;
 import com.yeni.backoffice.core.payment.enums.ExternalSendStatus;
+import com.yeni.backoffice.core.payment.enums.LedgerStatus;
 import com.yeni.backoffice.core.payment.enums.LogResultStatus;
 import com.yeni.backoffice.core.payment.enums.PaymentAuthStatus;
 import com.yeni.backoffice.core.payment.enums.PaymentStatus;
@@ -36,16 +51,20 @@ import com.yeni.backoffice.core.payment.enums.PaymentEventType;
 import com.yeni.backoffice.core.payment.enums.PgApiType;
 import com.yeni.backoffice.core.payment.enums.PgCompany;
 import com.yeni.backoffice.core.payment.enums.PgProvider;
+import com.yeni.backoffice.core.payment.enums.RecoveryStatus;
+import com.yeni.backoffice.core.payment.enums.RecoveryType;
 import com.yeni.backoffice.core.payment.enums.SaleStatus;
 import com.yeni.backoffice.core.payment.enums.SaleType;
+import com.yeni.backoffice.core.payment.enums.SalesSettlementStatus;
 import com.yeni.backoffice.core.payment.repository.AuditLogRepository;
-import com.yeni.backoffice.core.payment.repository.ExternalSendRequestRepository;
 import com.yeni.backoffice.core.payment.repository.PaymentAuthSessionRepository;
 import com.yeni.backoffice.core.payment.repository.PaymentCancelRepository;
+import com.yeni.backoffice.core.payment.repository.PaymentRecoveryTaskRepository;
 import com.yeni.backoffice.core.payment.repository.PaymentTransactionRepository;
 import com.yeni.backoffice.core.payment.repository.PgApiLogRepository;
 import com.yeni.backoffice.core.payment.repository.SalesTransactionRepository;
 import com.yeni.backoffice.core.payment.repository.SettlementAdjustmentRepository;
+import com.yeni.backoffice.core.payment.support.PaymentDefaults;
 import com.yeni.backoffice.core.payment.util.InicisSignatureService;
 import com.yeni.backoffice.core.payment.gateway.PaymentGateway;
 import com.yeni.backoffice.core.payment.gateway.PaymentGatewayRegistry;
@@ -75,7 +94,6 @@ import java.util.stream.Collectors;
 public class PaymentOperationService {
 
     private static final PgCompany PG_COMPANY = PgCompany.INICIS;
-    private static final String PAYMENT_METHOD = "CARD";
 
     private final InicisStdPayProperties inicisProperties;
     private final InicisSignatureService signatureService;
@@ -85,11 +103,13 @@ public class PaymentOperationService {
     private final PaymentAuthSessionRepository authSessionRepository;
     private final PaymentTransactionRepository paymentRepository;
     private final PaymentCancelRepository cancelRepository;
+    private final PaymentRecoveryTaskRepository recoveryTaskRepository;
     private final PgApiLogRepository pgApiLogRepository;
     private final SalesTransactionRepository salesRepository;
-    private final ExternalSendRequestRepository externalSendRequestRepository;
     private final SettlementAdjustmentRepository adjustmentRepository;
     private final AuditLogRepository auditLogRepository;
+    private final SalesLedgerService salesLedgerService;
+    private final PaymentFollowUpService followUpService;
 
     public PaymentOperationService(
             InicisStdPayProperties inicisProperties,
@@ -100,11 +120,13 @@ public class PaymentOperationService {
             PaymentAuthSessionRepository authSessionRepository,
             PaymentTransactionRepository paymentRepository,
             PaymentCancelRepository cancelRepository,
+            PaymentRecoveryTaskRepository recoveryTaskRepository,
             PgApiLogRepository pgApiLogRepository,
             SalesTransactionRepository salesRepository,
-            ExternalSendRequestRepository externalSendRequestRepository,
             SettlementAdjustmentRepository adjustmentRepository,
-            AuditLogRepository auditLogRepository) {
+            AuditLogRepository auditLogRepository,
+            SalesLedgerService salesLedgerService,
+            PaymentFollowUpService followUpService) {
         this.inicisProperties = inicisProperties;
         this.signatureService = signatureService;
         this.adapterResolver = adapterResolver;
@@ -113,28 +135,32 @@ public class PaymentOperationService {
         this.authSessionRepository = authSessionRepository;
         this.paymentRepository = paymentRepository;
         this.cancelRepository = cancelRepository;
+        this.recoveryTaskRepository = recoveryTaskRepository;
         this.pgApiLogRepository = pgApiLogRepository;
         this.salesRepository = salesRepository;
-        this.externalSendRequestRepository = externalSendRequestRepository;
         this.adjustmentRepository = adjustmentRepository;
         this.auditLogRepository = auditLogRepository;
+        this.salesLedgerService = salesLedgerService;
+        this.followUpService = followUpService;
     }
 
     @Transactional
     public PaymentApproveResponse approvePayment(PaymentApproveRequest request) {
         validateBridgeApproveRequest(request);
-        paymentRepository.findByOrderNo(request.orderNo())
-                .ifPresent(payment -> {
-                    throw new IllegalArgumentException("Order already has a payment transaction.");
-                });
+        String idempotencyKey = defaultText(request.idempotencyKey(), "APPROVE-" + request.orderNo());
+        PaymentTransaction existingPayment = paymentRepository.findByApprovalRequestKey(idempotencyKey)
+                .or(() -> paymentRepository.findByOrderNo(request.orderNo()))
+                .orElse(null);
+        if (existingPayment != null) {
+            return toApproveResponse(existingPayment, existingPayment.getPgProvider(), "IDEMPOTENT_REPLAY", "Existing approve result returned.");
+        }
 
         PgProvider provider = gatewayRouter.route(
                 request.pgProvider(),
                 request.channelType(),
                 request.storeCode(),
-                defaultText(request.paymentMethod(), PAYMENT_METHOD)
+                defaultText(request.paymentMethod(), PaymentDefaults.PAYMENT_METHOD_CARD)
         );
-        String idempotencyKey = defaultText(request.idempotencyKey(), "APPROVE-" + request.orderNo());
         PaymentGateway gateway = gatewayRegistry.get(provider);
         PaymentApproveCommand command = new PaymentApproveCommand(
                 provider,
@@ -145,23 +171,25 @@ public class PaymentOperationService {
                 idempotencyKey,
                 defaultText(request.channelType(), "WEB"),
                 defaultText(request.storeCode(), "PORTFOLIO"),
-                defaultText(request.paymentMethod(), PAYMENT_METHOD)
+                defaultText(request.paymentMethod(), PaymentDefaults.PAYMENT_METHOD_CARD)
         );
 
         long startedAt = System.currentTimeMillis();
         PgApiLog apiLog = savePgLog(null, request.orderNo(), provider, PaymentEventType.APPROVE, PgApiType.APPROVE,
                 idempotencyKey, command.toString(), LogResultStatus.REQUESTED, "PGB approve requested");
         PaymentApproveResult result = gateway.approve(command);
-        apiLog.complete(result.toString(), result.success() ? LogResultStatus.SUCCESS : LogResultStatus.FAILED, result.resultMessage());
+        apiLog.complete(result.toString(), result.success() ? LogResultStatus.SUCCESS : LogResultStatus.FAILED, result.resultMessage(), result.tid());
 
         if (result.unknown()) {
             PaymentTransaction payment = saveUnknownPayment(command, result);
+            followUpService.createRecoveryTask(payment.getId(), null, payment.getOrderNo(), payment.getTid(), idempotencyKey,
+                    RecoveryType.APPROVE_UNKNOWN_CHECK, "APPROVE_UNKNOWN-" + payment.getOrderNo(), result.resultMessage());
             saveAudit("PAYMENT", "UNKNOWN", request.orderNo(), "PGB approve result is unknown. retry-query is required.");
             return toApproveResponse(payment, provider, result.resultCode(), result.resultMessage());
         }
         if (!result.success()) {
             saveAudit("PAYMENT", "APPROVE_FAILED", request.orderNo(), result.resultMessage());
-            throw new IllegalArgumentException("Payment approve failed: " + result.resultMessage());
+            throw new BusinessException(ErrorCode.PAYMENT_APPROVE_FAILED, "결제 승인에 실패했습니다: " + result.resultMessage());
         }
 
         PaymentTransaction payment = PaymentTransaction.builder()
@@ -169,37 +197,68 @@ public class PaymentOperationService {
                 .pgProvider(provider)
                 .orderNo(command.orderNo())
                 .tid(result.tid())
+                .approvalRequestKey(idempotencyKey)
                 .approvedAmount(command.amount())
                 .canceledAmount(BigDecimal.ZERO)
                 .currency(command.currency())
                 .paymentStatus(PaymentStatus.APPROVED)
                 .approvedAt(result.approvedAt())
                 .build();
-        paymentRepository.save(payment);
-        apiLog.complete(result.toString(), LogResultStatus.SUCCESS, result.resultMessage());
-
-        SalesTransaction sales = createSales(payment, SaleType.SALE, payment.getId(), payment.getApprovedAmount(), result.approvedAt());
-        createExternalSendRequest(sales, "SALE-" + payment.getOrderNo());
-        saveAudit("PAYMENT", "APPROVED", payment.getOrderNo(), "PGB approve completed through " + provider);
-
-        return toApproveResponse(payment, provider, result.resultCode(), result.resultMessage() + " (" + (System.currentTimeMillis() - startedAt) + "ms)");
+        try {
+            paymentRepository.save(payment);
+            SalesTransaction sales = salesLedgerService.createSales(payment, SaleType.SALE, payment.getId(), payment.getApprovedAmount(), result.approvedAt());
+            followUpService.createExternalSendRequest(sales, "SALE-" + payment.getOrderNo());
+            followUpService.createAlimtalkQueue(payment, sales, "SALE-" + payment.getOrderNo(), "APPROVE");
+            saveAudit("PAYMENT", "APPROVED", payment.getOrderNo(), "PGB approve completed through " + provider);
+            return toApproveResponse(payment, provider, result.resultCode(), result.resultMessage() + " (" + (System.currentTimeMillis() - startedAt) + "ms)");
+        } catch (RuntimeException internalFailure) {
+            RecoveryType recoveryType = payment.getId() == null
+                    ? RecoveryType.APPROVE_INTERNAL_SAVE_FAILED
+                    : RecoveryType.NETWORK_CANCEL;
+            String taskKey = recoveryType.name() + "-" + command.orderNo();
+            if (payment.getId() != null) {
+                payment.updateStatus(PaymentStatus.NETWORK_CANCEL_REQUIRED, internalFailure.getMessage());
+            }
+            followUpService.createRecoveryTask(payment.getId(), null, command.orderNo(), result.tid(), idempotencyKey,
+                    recoveryType, taskKey, internalFailure.getMessage());
+            saveAudit("PAYMENT", "APPROVE_INTERNAL_FAILED", request.orderNo(),
+                    "PG approve succeeded but internal processing failed: " + internalFailure.getMessage());
+            return toApproveResponse(payment, provider, "NETWORK_CANCEL_REQUIRED",
+                    "PG 승인 후 내부 처리 실패로 망취소/복구 대상에 등록했습니다.");
+        }
     }
 
     @Transactional
     public PaymentBridgeCancelResponse cancelPaymentBridge(Long paymentId, PaymentBridgeCancelRequest request) {
         validateBridgeCancelRequest(request);
-        PaymentTransaction payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment not found."));
-        String idempotencyKey = defaultText(request.idempotencyKey(), "CANCEL-" + payment.getOrderNo() + "-" + System.currentTimeMillis());
-        cancelRepository.findByCancelRequestKey(idempotencyKey)
-                .ifPresent(cancel -> {
-                    throw new IllegalArgumentException("Cancel idempotency key already exists.");
-                });
+        PaymentTransaction payment = paymentRepository.findByIdForUpdate(paymentId)
+                .orElseThrow(() -> new NotFoundException(ErrorCode.PAYMENT_NOT_FOUND));
+        String idempotencyKey = request.idempotencyKey().trim();
+        PaymentCancel existingCancel = cancelRepository.findByCancelRequestKey(idempotencyKey).orElse(null);
+        if (existingCancel != null) {
+            return new PaymentBridgeCancelResponse(
+                    existingCancel.getId(),
+                    payment.getId(),
+                    payment.getPgProvider(),
+                    payment.getTid(),
+                    existingCancel.getCancelAmount(),
+                    existingCancel.getCancelType().name(),
+                    payment.getPaymentStatus().name(),
+                    "IDEMPOTENT_REPLAY",
+                    "Existing cancel result returned."
+            );
+        }
+        String cancelUnknownTaskKey = "CANCEL_UNKNOWN-" + idempotencyKey;
+        if (recoveryTaskRepository.findByTaskKey(cancelUnknownTaskKey).isPresent()) {
+            return new PaymentBridgeCancelResponse(null, payment.getId(), payment.getPgProvider(), payment.getTid(),
+                    request.cancelAmount(), null, payment.getPaymentStatus().name(), "IDEMPOTENT_REPLAY",
+                    "Existing unknown cancel recovery task returned.");
+        }
         if (payment.isCancelCompleted()) {
-            throw new IllegalArgumentException("Payment is already fully canceled.");
+            throw new ConflictException(ErrorCode.PAYMENT_ALREADY_CANCELED);
         }
         if (request.cancelAmount().compareTo(payment.getCancelableAmount()) > 0) {
-            throw new IllegalArgumentException("Cancel amount exceeds cancelable amount.");
+            throw new ValidationBusinessException(ErrorCode.PAYMENT_CANCEL_AMOUNT_EXCEEDED);
         }
 
         PgProvider provider = request.pgProvider() == null ? payment.getPgProvider() : request.pgProvider();
@@ -211,14 +270,17 @@ public class PaymentOperationService {
         apiLog.complete(result.toString(), result.success() ? LogResultStatus.SUCCESS : LogResultStatus.FAILED, result.resultMessage());
 
         if (result.unknown()) {
-            payment.updateStatus(PaymentStatus.UNKNOWN, result.resultMessage());
+            payment.updateStatus(PaymentStatus.CANCEL_UNKNOWN, result.resultMessage());
+            followUpService.createRecoveryTask(payment.getId(), null, payment.getOrderNo(), payment.getTid(), idempotencyKey,
+                    RecoveryType.CANCEL_UNKNOWN_CHECK, cancelUnknownTaskKey, result.resultMessage());
             saveAudit("PAYMENT", "CANCEL_UNKNOWN", payment.getOrderNo(), result.resultMessage());
-            throw new IllegalArgumentException("Payment cancel result is unknown. retry-query is required.");
+            return new PaymentBridgeCancelResponse(null, payment.getId(), provider, payment.getTid(), request.cancelAmount(),
+                    null, payment.getPaymentStatus().name(), result.resultCode(), result.resultMessage());
         }
         if (!result.success()) {
             payment.updateStatus(PaymentStatus.CANCEL_FAILED, result.resultMessage());
             saveAudit("PAYMENT", "CANCEL_FAILED", payment.getOrderNo(), result.resultMessage());
-            throw new IllegalArgumentException("Payment cancel failed: " + result.resultMessage());
+            throw new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED, "결제 취소에 실패했습니다: " + result.resultMessage());
         }
 
         CancelType cancelType = request.cancelAmount().compareTo(payment.getCancelableAmount()) == 0 ? CancelType.FULL : CancelType.PARTIAL;
@@ -234,8 +296,9 @@ public class PaymentOperationService {
                 .cancelReason(request.cancelReason())
                 .build();
         cancelRepository.save(cancel);
-        SalesTransaction sales = createSales(payment, SaleType.CANCEL, cancel.getId(), request.cancelAmount().negate(), cancel.getCanceledAt());
-        createExternalSendRequest(sales, "CANCEL-" + idempotencyKey);
+        SalesTransaction sales = salesLedgerService.createSales(payment, SaleType.CANCEL, cancel.getId(), request.cancelAmount().negate(), cancel.getCanceledAt());
+        followUpService.createExternalSendRequest(sales, "CANCEL-" + idempotencyKey);
+        followUpService.createAlimtalkQueue(payment, sales, "CANCEL-" + idempotencyKey, "CANCEL");
         saveAudit("PAYMENT", "CANCELED", payment.getOrderNo(), "PGB cancel completed through " + provider);
 
         return new PaymentBridgeCancelResponse(cancel.getId(), payment.getId(), provider, payment.getTid(), cancel.getCancelAmount(),
@@ -245,15 +308,31 @@ public class PaymentOperationService {
     @Transactional
     public PaymentQueryResponse retryQuery(Long paymentId) {
         PaymentTransaction payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment not found."));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.PAYMENT_NOT_FOUND));
         PaymentGateway gateway = gatewayRegistry.get(payment.getPgProvider());
         PaymentQueryCommand command = new PaymentQueryCommand(payment.getPgProvider(), payment.getTid(), payment.getOrderNo());
         PgApiLog apiLog = savePgLog(payment.getId(), payment.getOrderNo(), payment.getPgProvider(), PaymentEventType.QUERY,
-                PgApiType.APPROVE, null, command.toString(), LogResultStatus.REQUESTED, "PGB query requested");
+                PgApiType.INQUIRY, null, command.toString(), LogResultStatus.REQUESTED, "PGB query requested");
         PaymentQueryResult result = gateway.query(command);
         apiLog.complete(result.toString(), result.success() ? LogResultStatus.SUCCESS : LogResultStatus.FAILED, result.resultMessage());
-        if (result.success() && PaymentStatus.UNKNOWN.equals(payment.getPaymentStatus())) {
+        if (result.success() && (PaymentStatus.UNKNOWN.equals(payment.getPaymentStatus())
+                || PaymentStatus.APPROVE_UNKNOWN.equals(payment.getPaymentStatus()))) {
             payment.updateStatus(result.paymentStatus(), null);
+            if (PaymentStatus.APPROVED.equals(result.paymentStatus())) {
+                SalesTransaction sales = salesLedgerService.createSales(payment, SaleType.SALE, payment.getId(), payment.getApprovedAmount(), payment.getApprovedAt());
+                followUpService.createExternalSendRequest(sales, "SALE-" + payment.getOrderNo());
+                followUpService.createAlimtalkQueue(payment, sales, "SALE-" + payment.getOrderNo(), "APPROVE");
+                followUpService.markRecoverySuccess("APPROVE_UNKNOWN-" + payment.getOrderNo());
+                saveAudit("PAYMENT", "APPROVE_UNKNOWN_RECOVERED", payment.getOrderNo(),
+                        "PG query confirmed approve success and created missing sales/follow-up records.");
+            }
+        } else if (!result.success() && (PaymentStatus.UNKNOWN.equals(payment.getPaymentStatus())
+                || PaymentStatus.APPROVE_UNKNOWN.equals(payment.getPaymentStatus()))) {
+            payment.updateStatus(PaymentStatus.APPROVE_FAILED, result.resultMessage());
+            recoveryTaskRepository.findByTaskKey("APPROVE_UNKNOWN-" + payment.getOrderNo())
+                    .ifPresent(task -> task.markFailed(result.resultMessage()));
+            saveAudit("PAYMENT", "APPROVE_UNKNOWN_FAILED", payment.getOrderNo(),
+                    "PG query confirmed approve failure. SALE ledger was not created.");
         }
         return PaymentQueryResponse.from(payment, payment.getPgProvider(), result.resultCode(), result.resultMessage());
     }
@@ -263,7 +342,7 @@ public class PaymentOperationService {
         validateReadyRequest(request);
         authSessionRepository.findByOrderNo(request.orderNo())
                 .ifPresent(session -> {
-                    throw new IllegalArgumentException("Order number already has a payment session.");
+                    throw new ConflictException(ErrorCode.PAYMENT_DUPLICATED_REQUEST, "이미 결제 세션이 생성된 주문번호입니다.");
                 });
 
         String authToken = UUID.randomUUID().toString();
@@ -316,17 +395,17 @@ public class PaymentOperationService {
     public InicisApproveResponse handleStdPayReturn(InicisAuthResultRequest request) {
         validateAuthResultRequest(request);
         PaymentAuthSession session = authSessionRepository.findByAuthToken(request.authToken())
-                .orElseThrow(() -> new IllegalArgumentException("Payment auth session not found."));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.PAYMENT_NOT_FOUND, "결제 인증 세션을 찾을 수 없습니다."));
         session.markAuthResultReceived();
         savePgLog(null, request.orderNo(), PgApiType.AUTH_RESULT, request.toString(), LogResultStatus.RECEIVED, request.resultMessage());
 
         if (session.isExpired(LocalDateTime.now())) {
             session.markFailed();
-            throw new IllegalArgumentException("Payment auth session is expired.");
+            throw new ValidationBusinessException(ErrorCode.INVALID_REQUEST, "결제 인증 세션이 만료되었습니다.");
         }
         if (!"0000".equals(request.resultCode())) {
             session.markFailed();
-            throw new IllegalArgumentException("PG auth result failed: " + request.resultMessage());
+            throw new BusinessException(ErrorCode.PAYMENT_APPROVE_FAILED, "PG 인증 결과가 실패입니다: " + request.resultMessage());
         }
         validateAuthMatchesSession(request, session);
 
@@ -345,7 +424,7 @@ public class PaymentOperationService {
             approvalLog.complete(approvalResult.toString(), LogResultStatus.FAILED, approvalResult.resultMessage());
             session.markFailed();
             saveAudit("PAYMENT", "APPROVE_FAILED", request.orderNo(), approvalResult.resultMessage());
-            throw new IllegalArgumentException("PG approve failed: " + approvalResult.resultMessage());
+            throw new BusinessException(ErrorCode.PAYMENT_APPROVE_FAILED, "PG 승인에 실패했습니다: " + approvalResult.resultMessage());
         }
 
         try {
@@ -354,6 +433,7 @@ public class PaymentOperationService {
                     .mid(session.getMid())
                     .orderNo(session.getOrderNo())
                     .tid(approvalResult.tid())
+                    .approvalRequestKey("STD_PAY-" + session.getOrderNo())
                     .approvedAmount(session.getAmount())
                     .canceledAmount(BigDecimal.ZERO)
                     .currency(session.getCurrency())
@@ -363,8 +443,9 @@ public class PaymentOperationService {
             paymentRepository.save(payment);
             session.markApproved(approvalResult.tid());
 
-            SalesTransaction sales = createSales(payment, SaleType.SALE, payment.getId(), payment.getApprovedAmount(), approvalResult.approvedAt());
-            createExternalSendRequest(sales, "SALE-" + payment.getOrderNo());
+            SalesTransaction sales = salesLedgerService.createSales(payment, SaleType.SALE, payment.getId(), payment.getApprovedAmount(), approvalResult.approvedAt());
+            followUpService.createExternalSendRequest(sales, "SALE-" + payment.getOrderNo());
+            followUpService.createAlimtalkQueue(payment, sales, "SALE-" + payment.getOrderNo(), "APPROVE");
 
             approvalLog.complete(approvalResult.toString(), LogResultStatus.SUCCESS, approvalResult.resultMessage());
             saveAudit("PAYMENT", "APPROVED", payment.getOrderNo(), "PG 승인 완료 후 매출 및 외부 전송 요청을 생성했습니다.");
@@ -388,18 +469,25 @@ public class PaymentOperationService {
     @Transactional
     public PaymentCancelResponse cancelPayment(Long paymentId, PaymentCancelRequest request) {
         validateCancelRequest(request);
-        PaymentTransaction payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment not found."));
-        cancelRepository.findByCancelRequestKey(request.cancelRequestKey())
-                .ifPresent(cancel -> {
-                    throw new IllegalArgumentException("Cancel request key already exists.");
-                });
+        PaymentTransaction payment = paymentRepository.findByIdForUpdate(paymentId)
+                .orElseThrow(() -> new NotFoundException(ErrorCode.PAYMENT_NOT_FOUND));
+        PaymentCancel existingCancel = cancelRepository.findByCancelRequestKey(request.cancelRequestKey()).orElse(null);
+        if (existingCancel != null) {
+            return new PaymentCancelResponse(
+                    existingCancel.getId(),
+                    payment.getId(),
+                    payment.getTid(),
+                    existingCancel.getCancelAmount(),
+                    existingCancel.getCancelType().name(),
+                    payment.getPaymentStatus().name()
+            );
+        }
 
         if (payment.isCancelCompleted()) {
-            throw new IllegalArgumentException("Payment is already fully canceled.");
+            throw new ConflictException(ErrorCode.PAYMENT_ALREADY_CANCELED);
         }
         if (request.cancelAmount().compareTo(payment.getCancelableAmount()) > 0) {
-            throw new IllegalArgumentException("Cancel amount exceeds cancelable amount.");
+            throw new ValidationBusinessException(ErrorCode.PAYMENT_CANCEL_AMOUNT_EXCEEDED);
         }
 
         PaymentGatewayAdapter adapter = adapterResolver.resolve(PG_COMPANY);
@@ -411,7 +499,7 @@ public class PaymentOperationService {
         PgApiLog cancelLog = savePgLog(payment.getId(), payment.getOrderNo(), PgApiType.CANCEL, request.toString(), LogResultStatus.REQUESTED, "취소 mock 요청");
         if (!result.success()) {
             cancelLog.complete(result.toString(), LogResultStatus.FAILED, result.resultMessage());
-            throw new IllegalArgumentException("PG cancel failed: " + result.resultMessage());
+            throw new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED, "PG 취소에 실패했습니다: " + result.resultMessage());
         }
 
         CancelType cancelType = request.cancelAmount().compareTo(payment.getCancelableAmount()) == 0 ? CancelType.FULL : CancelType.PARTIAL;
@@ -428,8 +516,9 @@ public class PaymentOperationService {
                 .build();
         cancelRepository.save(cancel);
 
-        SalesTransaction sales = createSales(payment, SaleType.CANCEL, cancel.getId(), request.cancelAmount().negate(), cancel.getCanceledAt());
-        createExternalSendRequest(sales, "CANCEL-" + request.cancelRequestKey());
+        SalesTransaction sales = salesLedgerService.createSales(payment, SaleType.CANCEL, cancel.getId(), request.cancelAmount().negate(), cancel.getCanceledAt());
+        followUpService.createExternalSendRequest(sales, "CANCEL-" + request.cancelRequestKey());
+        followUpService.createAlimtalkQueue(payment, sales, "CANCEL-" + request.cancelRequestKey(), "CANCEL");
         cancelLog.complete(result.toString(), LogResultStatus.SUCCESS, result.resultMessage());
         saveAudit("PAYMENT", "CANCELED", payment.getOrderNo(), "PG 취소 완료 후 취소 매출 및 외부 전송 요청을 생성했습니다.");
 
@@ -454,13 +543,13 @@ public class PaymentOperationService {
     public PaymentResponse getPayment(Long paymentId) {
         return paymentRepository.findById(paymentId)
                 .map(PaymentResponse::from)
-                .orElseThrow(() -> new IllegalArgumentException("Payment not found."));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.PAYMENT_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
     public List<PgLogResponse> getPaymentLogs(Long paymentId) {
         PaymentTransaction payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment not found."));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.PAYMENT_NOT_FOUND));
         return pgApiLogRepository.findByOrderNoOrderByLoggedAtDesc(payment.getOrderNo()).stream()
                 .map(PgLogResponse::from)
                 .collect(Collectors.toList());
@@ -475,13 +564,47 @@ public class PaymentOperationService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public SalesLedgerPageResponse getSalesLedger(
+            LocalDate startDate,
+            LocalDate endDate,
+            String transactionType,
+            String ledgerStatus,
+            String settlementStatus,
+            String keyword,
+            int page,
+            int size) {
+        return salesLedgerService.getSalesLedger(startDate, endDate, transactionType, ledgerStatus, settlementStatus, keyword, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public SalesLedgerSummaryResponse getSalesLedgerSummary(
+            LocalDate startDate,
+            LocalDate endDate,
+            String transactionType,
+            String ledgerStatus,
+            String settlementStatus,
+            String keyword) {
+        return salesLedgerService.getSalesLedgerSummary(startDate, endDate, transactionType, ledgerStatus, settlementStatus, keyword);
+    }
+
+    @Transactional(readOnly = true)
+    public SalesResponse getSalesLedgerDetail(Long salesTransactionId) {
+        return salesLedgerService.getSalesLedgerDetail(salesTransactionId);
+    }
+
+    @Transactional(readOnly = true)
+    public SalesLedgerLinksResponse getSalesLedgerLinks(Long salesTransactionId) {
+        return salesLedgerService.getSalesLedgerLinks(salesTransactionId);
+    }
+
     @Transactional
     public void addSalesAdjustment(Long salesId, SalesAdjustmentRequest request) {
         if (!StringUtils.hasText(request.adjustmentType()) || request.adjustmentAmount() == null) {
-            throw new IllegalArgumentException("Adjustment type and amount are required.");
+            throw new ValidationBusinessException(ErrorCode.VALIDATION_ERROR, "조정 유형과 조정금액은 필수입니다.");
         }
         salesRepository.findById(salesId)
-                .orElseThrow(() -> new IllegalArgumentException("Sales transaction not found."));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.SALES_TRANSACTION_NOT_FOUND));
         adjustmentRepository.save(SettlementAdjustment.builder()
                 .salesId(salesId)
                 .adjustmentType(request.adjustmentType())
@@ -495,7 +618,7 @@ public class PaymentOperationService {
         if (request == null || !StringUtils.hasText(request.orderNo()) || request.amount() == null
                 || request.amount().compareTo(BigDecimal.ZERO) <= 0 || !StringUtils.hasText(request.buyerName())
                 || !StringUtils.hasText(request.productName())) {
-            throw new IllegalArgumentException("Order number, positive amount, buyer name and product name are required.");
+            throw new ValidationBusinessException(ErrorCode.VALIDATION_ERROR, "주문번호, 0보다 큰 금액, 구매자명, 상품명은 필수입니다.");
         }
     }
 
@@ -503,80 +626,53 @@ public class PaymentOperationService {
         if (request == null || !StringUtils.hasText(request.mid()) || !StringUtils.hasText(request.orderNo())
                 || !StringUtils.hasText(request.authToken()) || request.amount() == null
                 || !StringUtils.hasText(request.resultCode()) || !StringUtils.hasText(request.signature())) {
-            throw new IllegalArgumentException("Auth result request is invalid.");
+            throw new ValidationBusinessException(ErrorCode.VALIDATION_ERROR, "인증 결과 요청값이 올바르지 않습니다.");
         }
     }
 
     private void validateCancelRequest(PaymentCancelRequest request) {
         if (request == null || request.cancelAmount() == null || request.cancelAmount().compareTo(BigDecimal.ZERO) <= 0
                 || !StringUtils.hasText(request.cancelRequestKey())) {
-            throw new IllegalArgumentException("Cancel amount and cancel request key are required.");
+            throw new ValidationBusinessException(ErrorCode.PAYMENT_CANCEL_KEY_REQUIRED);
         }
     }
 
     private void validateBridgeApproveRequest(PaymentApproveRequest request) {
         if (request == null || !StringUtils.hasText(request.orderNo()) || request.amount() == null
                 || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Order number and positive amount are required.");
+            throw new ValidationBusinessException(ErrorCode.VALIDATION_ERROR, "주문번호와 0보다 큰 승인금액은 필수입니다.");
         }
     }
 
     private void validateBridgeCancelRequest(PaymentBridgeCancelRequest request) {
-        if (request == null || request.cancelAmount() == null || request.cancelAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Positive cancel amount is required.");
+        if (request == null || request.cancelAmount() == null || request.cancelAmount().compareTo(BigDecimal.ZERO) <= 0
+                || !StringUtils.hasText(request.idempotencyKey())) {
+            throw new ValidationBusinessException(ErrorCode.PAYMENT_CANCEL_KEY_REQUIRED, "0보다 큰 취소금액과 취소 중복 방지 키는 필수입니다.");
         }
     }
 
     private void validateAuthMatchesSession(InicisAuthResultRequest request, PaymentAuthSession session) {
         if (!session.getMid().equals(request.mid()) || !session.getOrderNo().equals(request.orderNo())
                 || session.getAmount().compareTo(request.amount()) != 0) {
-            throw new IllegalArgumentException("Auth result does not match payment session.");
+            throw new ValidationBusinessException(ErrorCode.INVALID_REQUEST, "인증 결과가 결제 세션과 일치하지 않습니다.");
         }
         if (!signatureService.matchesAuthSignature(request.orderNo(), request.amount(), request.authToken(), request.signature())) {
-            throw new IllegalArgumentException("Auth signature is invalid.");
+            throw new ValidationBusinessException(ErrorCode.INVALID_REQUEST, "인증 서명이 올바르지 않습니다.");
         }
     }
 
     private void validateApprovalResult(PaymentAuthSession session, PaymentGatewayAdapter.ApprovalResult approvalResult) {
         if (!StringUtils.hasText(approvalResult.tid()) || approvalResult.approvedAt() == null) {
-            throw new IllegalArgumentException("Mock approval result is invalid.");
+            throw new ValidationBusinessException(ErrorCode.INVALID_REQUEST, "Mock 승인 응답값이 올바르지 않습니다.");
         }
         paymentRepository.findByTid(approvalResult.tid())
                 .ifPresent(payment -> {
-                    throw new IllegalArgumentException("Approved TID already exists.");
+                    throw new ConflictException(ErrorCode.PAYMENT_DUPLICATED_REQUEST, "이미 등록된 PG 거래번호입니다.");
                 });
         paymentRepository.findByOrderNo(session.getOrderNo())
                 .ifPresent(payment -> {
-                    throw new IllegalArgumentException("Order already has an approved payment.");
+                    throw new ConflictException(ErrorCode.PAYMENT_ALREADY_APPROVED);
                 });
-    }
-
-    private SalesTransaction createSales(PaymentTransaction payment, SaleType saleType, Long sourceId, BigDecimal amount, LocalDateTime occurredAt) {
-        SalesTransaction sales = SalesTransaction.builder()
-                .sourceType(saleType.name())
-                .sourceId(sourceId)
-                .orderNo(payment.getOrderNo())
-                .tid(payment.getTid())
-                .saleType(saleType)
-                .saleAmount(amount)
-                .vatAmount(amount.divide(BigDecimal.valueOf(11), 2, RoundingMode.HALF_UP))
-                .saleStatus(SaleStatus.READY)
-                .businessDate(occurredAt.toLocalDate())
-                .occurredAt(occurredAt)
-                .externalSendRequired(true)
-                .settlementIncludedYn(false)
-                .build();
-        return salesRepository.save(sales);
-    }
-
-    private void createExternalSendRequest(SalesTransaction sales, String requestKey) {
-        externalSendRequestRepository.save(ExternalSendRequest.builder()
-                .salesId(sales.getId())
-                .requestKey(requestKey)
-                .targetSystem("SALES_OPERATION_MOCK")
-                .sendStatus(ExternalSendStatus.READY)
-                .retryCount(0)
-                .build());
     }
 
     private PgApiLog savePgLog(Long paymentId, String orderNo, PgApiType apiType, String requestBody, LogResultStatus status, String message) {
@@ -652,10 +748,11 @@ public class PaymentOperationService {
                 .pgProvider(command.pgProvider())
                 .orderNo(command.orderNo())
                 .tid(result.tid() == null ? "UNKNOWN-" + UUID.randomUUID() : result.tid())
+                .approvalRequestKey(command.idempotencyKey())
                 .approvedAmount(command.amount())
                 .canceledAmount(BigDecimal.ZERO)
                 .currency(command.currency())
-                .paymentStatus(PaymentStatus.UNKNOWN)
+                .paymentStatus(PaymentStatus.APPROVE_UNKNOWN)
                 .approvedAt(LocalDateTime.now())
                 .failureReason(result.resultMessage())
                 .build();
@@ -681,6 +778,6 @@ public class PaymentOperationService {
     }
 
     public static String paymentMethod() {
-        return PAYMENT_METHOD;
+        return PaymentDefaults.PAYMENT_METHOD_CARD;
     }
 }

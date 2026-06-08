@@ -1,5 +1,8 @@
 package com.yeni.backoffice.core.payment.service;
 
+import com.yeni.backoffice.core.common.exception.ErrorCode;
+import com.yeni.backoffice.core.common.exception.NotFoundException;
+import com.yeni.backoffice.core.common.exception.ValidationBusinessException;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.ExternalSendResponse;
 import com.yeni.backoffice.core.payment.entity.ExternalSendHistory;
 import com.yeni.backoffice.core.payment.entity.ExternalSendRequest;
@@ -30,7 +33,7 @@ public class ExternalSendService {
     public List<ExternalSendResponse> getRequests(String status) {
         List<ExternalSendRequest> requests = status == null
                 ? sendRequestRepository.findAll()
-                : sendRequestRepository.findBySendStatusOrderByIdAsc(ExternalSendStatus.valueOf(status));
+                : sendRequestRepository.findBySendStatusOrderByIdAsc(parseStatus(status));
         return requests.stream()
                 .map(ExternalSendResponse::from)
                 .collect(Collectors.toList());
@@ -39,7 +42,7 @@ public class ExternalSendService {
     @Transactional
     public ExternalSendResponse send(Long requestId) {
         ExternalSendRequest request = sendRequestRepository.findById(requestId)
-                .orElseThrow(() -> new IllegalArgumentException("External send request not found."));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.NOT_FOUND, "외부전송 요청을 찾을 수 없습니다."));
 
         String requestBody = "salesId=" + request.getSalesId() + ", requestKey=" + request.getRequestKey();
         if (request.getRequestKey().toUpperCase().contains("FAIL")) {
@@ -75,5 +78,13 @@ public class ExternalSendService {
                 .resultMessage(resultMessage)
                 .sentAt(LocalDateTime.now())
                 .build());
+    }
+
+    private ExternalSendStatus parseStatus(String status) {
+        try {
+            return ExternalSendStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new ValidationBusinessException(ErrorCode.INVALID_REQUEST, "지원하지 않는 외부전송 상태입니다.");
+        }
     }
 }

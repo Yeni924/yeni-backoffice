@@ -8,4 +8,6 @@ import java.util.List;
 public interface SettlementDetailRepository extends JpaRepository<SettlementDetail, Long> {
 
     List<SettlementDetail> findBySettlementStatementIdOrderByIdAsc(Long settlementStatementId);
+
+    List<SettlementDetail> findBySalesIdOrderByIdAsc(Long salesId);
 }

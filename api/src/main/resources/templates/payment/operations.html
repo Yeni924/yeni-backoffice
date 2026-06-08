@@ -3,195 +3,222 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PG Operations - Yeni Backoffice</title>
+    <title>PG 운영 - Yeni Backoffice</title>
 
     <link rel="stylesheet" th:href="@{/css/common.css}" />
     <link rel="stylesheet" th:href="@{/css/layout.css}" />
     <link rel="stylesheet" th:href="@{/css/components.css}" />
+    <link rel="stylesheet" th:href="@{/vendor/tabulator/tabulator.min.css}" />
     <link rel="stylesheet" th:href="@{/css/pages/payment-operations.css}" />
 </head>
-
 <body>
 <div class="layout">
     <div th:replace="~{fragments/sidebar}"></div>
-
     <main class="main">
         <div th:replace="~{fragments/topbar :: header}"></div>
 
         <section class="content payment-page">
             <div class="payment-hero">
                 <div>
-                    <span class="badge">PG Adapter Mock</span>
-                    <h2>공통 결제 도메인 기반 PG 운영 콘솔</h2>
-                    <p>
-                        Payment Gateway Bridge API를 통해 PG Provider 선택, 승인, 취소, UNKNOWN 재조회, 매출 생성,
-                        외부 전송, 정산 배치 흐름을 한 화면에서 확인할 수 있는 포트폴리오용 mock 화면입니다.
-                    </p>
+                    <span class="badge">PG 운영</span>
+                    <h2>결제 운영 콘솔</h2>
+                    <p>Mock PG로 승인/취소/결과불명/망취소 시나리오를 실행하고, 결제 이후 생성되는 매출 원장, 외부전송, 알림톡, 복구 작업 흐름을 확인합니다.</p>
                 </div>
-                <a class="btn btn-light swagger-link" href="/swagger-ui/index.html" target="_blank" rel="noopener">Swagger</a>
+                <a class="btn btn-light swagger-link" href="/swagger-ui/index.html" target="_blank" rel="noopener">API 문서</a>
             </div>
 
-            <div class="ops-grid">
-                <section class="card ops-panel">
-                    <div class="panel-header">
-                        <h3>Mock Payment</h3>
-                        <span id="flowStatus" class="status ready">READY</span>
-                    </div>
+            <nav class="ops-tabs" aria-label="PG 운영 화면">
+                <button class="active" type="button" data-tab-target="overview">운영 개요</button>
+                <button type="button" data-tab-target="scenarios">시나리오 실행</button>
+                <button type="button" data-tab-target="payments">결제 거래</button>
+                <button type="button" data-tab-target="followups">후속처리/복구</button>
+            </nav>
 
-                    <div class="form-grid">
-                        <label>
-                            주문번호
-                            <input id="orderNo" type="text" />
-                        </label>
-                        <label>
-                            결제금액
-                            <input id="amount" type="number" min="1000" step="1000" value="12000" />
-                        </label>
-                        <label>
-                            구매자
-                            <input id="buyerName" type="text" value="Portfolio Buyer" />
-                        </label>
-                        <label>
-                            상품명
-                            <input id="productName" type="text" value="PG Adapter Mock Item" />
-                        </label>
-                    </div>
+            <section class="tab-panel active" data-tab-panel="overview">
+                <section class="operator-note">
+                    <h3>결제 운영에서 확인하는 흐름</h3>
+                    <p>결제 완료 후 결제 거래가 저장되고 SALE 결제매출 원장이 생성됩니다. 취소 완료 후에는 기존 SALE을 수정하지 않고 CANCEL 취소매출 음수 거래를 별도로 생성합니다.</p>
+                    <p>PG 응답 지연이나 실패로 확정되지 않은 거래는 승인 결과불명 또는 취소 결과불명 상태로 관리합니다. 외부전송과 알림톡은 결제 저장과 분리하고, 실패나 망취소 필요 상황은 RecoveryTask로 추적합니다.</p>
+                </section>
 
-                    <div class="button-row">
-                        <button class="btn btn-primary" id="runPaymentBtn" type="button">결제 준비 + 승인</button>
-                        <button class="btn btn-light" id="cancelPaymentBtn" type="button" disabled>부분 취소</button>
-                        <button class="btn btn-light" id="runSettlementBtn" type="button">금일 정산 배치</button>
-                    </div>
+                <section class="process-stepper">
+                    <div>Mock PG 승인/취소</div>
+                    <span></span>
+                    <div>중복 요청 검증</div>
+                    <span></span>
+                    <div>결제 거래 저장</div>
+                    <span></span>
+                    <div>SALE/CANCEL 원장 생성</div>
+                    <span></span>
+                    <div>외부전송/알림톡 대기</div>
+                    <span></span>
+                    <div>복구 작업 추적</div>
+                </section>
 
-                    <div class="flow-box">
-                        <div>Common Payment Domain</div>
-                        <span></span>
-                        <div>PG Adapter</div>
-                        <span></span>
-                        <div>Sales / External Send</div>
-                        <span></span>
-                        <div>Settlement Batch</div>
+                <section class="reliability-map" aria-label="결제 운영 설계">
+                    <div class="section-title">
+                        <span class="badge">운영 설계 포인트</span>
+                        <h3>실제 운영 예외를 고려한 결제 흐름</h3>
+                    </div>
+                    <div class="reliability-grid">
+                        <button class="reliability-item" type="button" data-note="같은 멱등키 또는 주문번호로 다시 요청해도 기존 승인 결과를 반환합니다.">
+                            <strong>중복 결제 방지</strong>
+                            <span>같은 요청은 기존 결과 반환</span>
+                        </button>
+                        <button class="reliability-item" type="button" data-note="PG 취소 호출 전에 누적 취소금액과 잔여 취소 가능금액을 검증합니다.">
+                            <strong>취소 가능금액 검증</strong>
+                            <span>승인 금액 초과 취소 차단</span>
+                        </button>
+                        <button class="reliability-item" type="button" data-note="PG 응답이 불명확하면 실패로 확정하지 않고 결과불명 상태와 RecoveryTask로 남깁니다.">
+                            <strong>결과불명 관리</strong>
+                            <span>승인/취소 결과불명 추적</span>
+                        </button>
+                        <button class="reliability-item" type="button" data-note="PG 승인은 성공했지만 내부 저장 또는 후속 처리가 실패한 경우 orderNo, tid, idempotencyKey로 추적합니다.">
+                            <strong>망취소 복구</strong>
+                            <span>운영자가 확인 가능한 복구 작업</span>
+                        </button>
+                        <button class="reliability-item" type="button" data-note="외부전송과 알림톡 실패가 결제 저장을 되돌리지 않도록 후속 처리를 분리합니다.">
+                            <strong>후속 처리 분리</strong>
+                            <span>Queue 기반 재처리</span>
+                        </button>
                     </div>
                 </section>
 
                 <section class="card ops-panel">
                     <div class="panel-header">
-                        <h3>Operation Summary</h3>
-                        <button class="btn btn-light" id="refreshBtn" type="button">Refresh</button>
+                        <h3>운영 현황 요약</h3>
+                        <button class="btn btn-light" id="refreshBtn" type="button">새로고침</button>
                     </div>
                     <div class="metric-grid">
-                        <div>
-                            <span>결제 건수</span>
-                            <strong id="paymentCount">0</strong>
-                        </div>
-                        <div>
-                            <span>승인 금액</span>
-                            <strong id="approvedAmount">0</strong>
-                        </div>
-                        <div>
-                            <span>매출 금액</span>
-                            <strong id="salesAmount">0</strong>
-                        </div>
-                        <div>
-                            <span>전송 실패</span>
-                            <strong id="failedExternalSendCount">0</strong>
-                        </div>
+                        <div><span>결제 승인 건수</span><strong id="paymentCount">0</strong></div>
+                        <div><span>승인 금액</span><strong id="approvedAmount">0원</strong></div>
+                        <div><span>매출 원장 건수</span><strong id="salesAmount">0건 / 0원</strong></div>
+                        <div><span>외부전송 대기/실패</span><strong id="failedExternalSendCount">0 / 0</strong></div>
+                        <div><span>복구 작업</span><strong id="recoveryTaskCount">0</strong></div>
+                        <div><span>알림톡 대기/실패</span><strong id="alimtalkQueueCount">0 / 0</strong></div>
                     </div>
                     <div id="messageBox" class="message-box">대기 중입니다.</div>
                 </section>
-            </div>
+            </section>
 
-            <div class="ops-grid">
+            <section class="tab-panel" data-tab-panel="scenarios">
+                <div class="ops-grid scenario-grid">
+                    <section class="card ops-panel">
+                        <div class="panel-header"><h3>시나리오 실행</h3></div>
+                        <div class="scenario-button-grid">
+                            <button type="button" data-scenario="normal-approve">1. 정상 결제 완료</button>
+                            <button type="button" data-scenario="partial-cancel">2. 3,000원 부분취소</button>
+                            <button type="button" data-scenario="duplicate-approve">3. 중복 승인 요청</button>
+                            <button type="button" data-scenario="over-cancel">4. 취소금액 초과 요청</button>
+                            <button type="button" data-scenario="approve-timeout">5. PG 승인 결과불명</button>
+                            <button type="button" data-scenario="cancel-timeout">6. PG 취소 결과불명</button>
+                            <button type="button" data-scenario="network-cancel-required">7. 망취소 필요 상황</button>
+                            <button type="button" data-scenario="external-send-fail">8. 외부전송 실패</button>
+                            <button type="button" data-scenario="alimtalk-fail">9. 알림톡 발송 실패</button>
+                            <button type="button" data-scenario="settlement-preview">10. 정산 대상 매출 생성</button>
+                        </div>
+                    </section>
+
+                    <section class="card ops-panel scenario-output">
+                        <div class="panel-header">
+                            <h3>최근 처리 결과</h3>
+                            <span id="scenarioStatus" class="status ready">대기</span>
+                        </div>
+                        <div id="scenarioResult" class="scenario-result">시나리오 버튼을 누르면 결제 거래, 매출 원장, 외부전송, 알림톡, 복구 작업 흐름을 단계별로 표시합니다.</div>
+                        <ol id="scenarioTimeline" class="timeline-list"></ol>
+                    </section>
+                </div>
+
+                <section class="card ops-panel">
+                    <div class="panel-header">
+                        <h3>수동 결제 승인/취소 테스트</h3>
+                        <span id="flowStatus" class="status ready">대기</span>
+                    </div>
+                    <div class="form-grid">
+                        <label>주문번호 <input id="orderNo" type="text" /></label>
+                        <label>결제금액 <input id="amount" type="number" min="1000" step="1000" value="12000" /></label>
+                        <label>구매자 <input id="buyerName" type="text" value="포트폴리오 고객" /></label>
+                        <label>상품명 <input id="productName" type="text" value="백오피스 결제 테스트 상품" /></label>
+                    </div>
+                    <div class="button-row">
+                        <button class="btn btn-primary" id="runPaymentBtn" type="button">결제 승인</button>
+                        <button class="btn btn-light" id="cancelPaymentBtn" type="button" disabled>부분취소</button>
+                    </div>
+                    <div class="scenario-row" aria-label="결과불명 시나리오">
+                        <button type="button" id="approveUnknownBtn" data-note="Mock PG가 승인 결과불명 응답을 반환하게 합니다.">승인 결과불명</button>
+                        <button type="button" id="cancelUnknownBtn" data-note="Mock PG가 취소 결과불명 응답을 반환하게 합니다." disabled>취소 결과불명</button>
+                    </div>
+                </section>
+            </section>
+
+            <section class="tab-panel" data-tab-panel="payments">
                 <section class="card table-section">
                     <div class="panel-header">
-                        <h3>Payments</h3>
+                        <div>
+                            <h3>결제 거래 내역</h3>
+                            <p class="table-caption">PG 승인/취소 결과와 결제 거래 상태를 확인합니다.</p>
+                        </div>
                     </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Order</th>
-                                <th>TID</th>
-                                <th>Amount</th>
-                                <th>Canceled</th>
-                                <th>Status</th>
-                            </tr>
-                            </thead>
-                            <tbody id="paymentTableBody"></tbody>
-                        </table>
+                    <div class="status-legend">
+                        <span><b class="status-dot paid"></b>결제완료: 승인 성공, 매출 원장 반영 대상</span>
+                        <span><b class="status-dot shipping"></b>부분취소: 일부 금액 취소 완료</span>
+                        <span><b class="status-dot cancel"></b>취소완료/실패: 취소 완료 또는 실패 상태</span>
+                        <span><b class="status-dot unknown"></b>결과불명/망취소: PG 결과 확인 또는 운영 복구 필요</span>
+                        <span><b class="status-dot ready"></b>대기: 아직 처리 전 상태</span>
+                    </div>
+                    <div id="paymentTable" class="tabulator-host"></div>
+                </section>
+            </section>
+
+            <section class="tab-panel" data-tab-panel="followups">
+                <section class="operator-note">
+                    <h3>후속처리 상태를 보는 방법</h3>
+                    <p>결제 저장 이후 회계/운영 시스템 전송과 알림톡 발송은 결제 성공 여부와 분리해 관리합니다. 실패해도 결제 거래를 되돌리지 않고 재시도 대상이나 복구 작업으로 남깁니다.</p>
+                    <div class="status-legend compact">
+                        <span><b class="status-dot ready"></b>대기: 아직 처리 전이거나 재처리 대기</span>
+                        <span><b class="status-dot paid"></b>성공/지급완료: 후속처리 완료</span>
+                        <span><b class="status-dot cancel"></b>실패: 전송 또는 발송 실패</span>
+                        <span><b class="status-dot unknown"></b>재시도/복구필요: 운영자 확인 또는 배치 재처리 대상</span>
                     </div>
                 </section>
 
-                <section class="card table-section">
-                    <div class="panel-header">
-                        <h3>Sales</h3>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Order</th>
-                                <th>Type</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Business Date</th>
-                            </tr>
-                            </thead>
-                            <tbody id="salesTableBody"></tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
+                <div class="ops-grid">
+                    <section class="card table-section">
+                        <div class="panel-header">
+                            <div>
+                                <h3>외부전송 대기함</h3>
+                                <p class="table-caption">매출 거래 이후 외부 시스템으로 전송할 대상을 관리합니다.</p>
+                            </div>
+                        </div>
+                        <div id="externalTable" class="tabulator-host"></div>
+                    </section>
 
-            <div class="ops-grid">
-                <section class="card table-section">
-                    <div class="panel-header">
-                        <h3>External Send</h3>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Request Key</th>
-                                <th>Target</th>
-                                <th>Status</th>
-                                <th>Retry</th>
-                                <th>Action</th>
-                            </tr>
-                            </thead>
-                            <tbody id="externalTableBody"></tbody>
-                        </table>
-                    </div>
-                </section>
+                    <section class="card table-section">
+                        <div class="panel-header">
+                            <div>
+                                <h3>알림톡 발송 대기함</h3>
+                                <p class="table-caption">결제/취소 이벤트 이후 고객 알림톡 발송 대상을 관리합니다.</p>
+                            </div>
+                        </div>
+                        <div id="alimtalkTable" class="tabulator-host"></div>
+                    </section>
+                </div>
 
                 <section class="card table-section">
                     <div class="panel-header">
-                        <h3>Settlements</h3>
+                        <div>
+                            <h3>복구 작업</h3>
+                            <p class="table-caption">승인 결과불명, 취소 결과불명, 망취소, 외부전송/알림톡 재처리 대상을 추적하고 운영자가 처리합니다.</p>
+                        </div>
                     </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Date</th>
-                                <th>Gross</th>
-                                <th>Fee</th>
-                                <th>Net</th>
-                                <th>Status</th>
-                            </tr>
-                            </thead>
-                            <tbody id="settlementTableBody"></tbody>
-                        </table>
-                    </div>
+                    <div id="recoveryTable" class="tabulator-host"></div>
                 </section>
-            </div>
+            </section>
         </section>
     </main>
 </div>
 
+<script th:src="@{/vendor/tabulator/tabulator.min.js}"></script>
 <script th:src="@{/js/common.js}"></script>
 <script th:src="@{/js/pages/payment-operations.js}"></script>
 </body>

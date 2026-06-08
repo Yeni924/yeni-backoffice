@@ -5,5 +5,7 @@ public enum PgApiType {
     AUTH_RESULT,
     APPROVE,
     CANCEL,
+    NETWORK_CANCEL,
+    INQUIRY,
     NET_CANCEL
 }

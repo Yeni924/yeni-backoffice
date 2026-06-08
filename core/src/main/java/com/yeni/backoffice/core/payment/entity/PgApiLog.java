@@ -97,4 +97,9 @@ public class PgApiLog extends BaseTimeEntity {
         this.successYn = LogResultStatus.SUCCESS.equals(resultStatus);
         this.loggedAt = LocalDateTime.now();
     }
+
+    public void complete(String responseBody, LogResultStatus resultStatus, String resultMessage, String tid) {
+        complete(responseBody, resultStatus, resultMessage);
+        this.tid = tid;
+    }
 }
