@@ -87,12 +87,12 @@ function showDashboardLoading(message) {
         dashboardLoading.innerHTML = '<div class="dashboard-loading-box">'
             + '<div class="dashboard-progress"><span></span></div>'
             + '<strong></strong>'
-            + '<p>잠시만 기다려 주세요.</p>'
+            + '<p>목록과 상세 팝업을 곧 표시합니다.</p>'
             + '</div>';
         document.body.appendChild(dashboardLoading);
     }
 
-    dashboardLoading.querySelector("strong").textContent = message || "데이터를 불러오는 중입니다";
+    dashboardLoading.querySelector("strong").textContent = message || "프로젝트 목록을 준비하고 있어요";
     dashboardLoading.classList.add("open");
 }
 
@@ -697,7 +697,7 @@ function bindEvents() {
 
 setupSidebarTooltips();
 restoreSidebarState();
-showDashboardLoading("프로젝트 데이터를 불러오는 중입니다");
+showDashboardLoading("프로젝트 목록을 준비하고 있어요");
 initProjectTable();
 animateCounters();
 setupScrollSpy();

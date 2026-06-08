@@ -11,22 +11,22 @@ public class PaymentOperationViewController {
 
     @GetMapping
     public String page(Model model) {
-        model.addAttribute("title", "PG Operations");
-        model.addAttribute("description", "Payment gateway adapter, sales operation and settlement mock console.");
+        model.addAttribute("title", "PG 운영 콘솔");
+        model.addAttribute("description", "Mock PG 승인/취소와 매출 원장, 외부전송, 알림톡, 복구 작업 흐름을 확인합니다.");
         return "payment/operations";
     }
 
     @GetMapping("/sales-ledger")
     public String salesLedger(Model model) {
-        model.addAttribute("title", "Sales Ledger");
-        model.addAttribute("description", "SALE/CANCEL sales ledger generated from payment and cancel results.");
+        model.addAttribute("title", "매출 원장");
+        model.addAttribute("description", "결제 승인과 취소 결과가 확정된 SALE/CANCEL 거래를 조회합니다.");
         return "payment/sales-ledger";
     }
 
     @GetMapping("/settlements")
     public String settlements(Model model) {
-        model.addAttribute("title", "Settlement Management");
-        model.addAttribute("description", "Settlement statements generated from the sales ledger.");
+        model.addAttribute("title", "정산 관리");
+        model.addAttribute("description", "매출 원장을 기준으로 정산 예정금액과 정산 상태를 확인합니다.");
         return "payment/settlements";
     }
 }

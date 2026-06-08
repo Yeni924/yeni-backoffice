@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>권예은 Backoffice Career Portfolio</title>
+    <title>권예은 백오피스 포트폴리오</title>
     <link rel="stylesheet" th:href="@{/vendor/tabulator/tabulator.min.css}" />
     <link rel="stylesheet" th:href="@{/css/pages/dashboard.css}" />
 </head>
@@ -14,14 +14,14 @@
             <div class="brand-mark">Y</div>
             <div>
                 <div class="brand-title">Yeni<span>Backoffice</span></div>
-                <div class="brand-sub">Career · Admin Portfolio</div>
+                <div class="brand-sub">결제 운영 포트폴리오</div>
             </div>
         </div>
 
         <nav class="nav" aria-label="사이드 메뉴">
             <div class="nav-group" data-group="career">
                 <button class="nav-toggle" type="button" aria-expanded="true">
-                    <span>CAREER</span>
+                    <span>경력</span>
                     <span class="nav-arrow">▾</span>
                 </button>
                 <div class="nav-items">
@@ -35,19 +35,19 @@
 
             <div class="nav-group" data-group="demo">
                 <button class="nav-toggle" type="button" aria-expanded="true">
-                    <span>LIVE DEMO</span>
+                    <span>데모 화면</span>
                     <span class="nav-arrow">▾</span>
                 </button>
                 <div class="nav-items">
                     <a class="nav-link" href="/admin/payment-operations"><span class="nav-icon">PG</span><span class="nav-text">PG Mock 콘솔</span></a>
                     <a class="nav-link" href="/admin/database-spec"><span class="nav-icon">DB</span><span class="nav-text">DB 명세</span></a>
-                    <a class="nav-link" href="/swagger-ui/index.html" target="_blank" rel="noopener"><span class="nav-icon">SW</span><span class="nav-text">Swagger API</span></a>
+                    <a class="nav-link" href="/swagger-ui/index.html" target="_blank" rel="noopener"><span class="nav-icon">API</span><span class="nav-text">API 문서</span></a>
                 </div>
             </div>
 
             <div class="nav-group" data-group="system">
                 <button class="nav-toggle" type="button" aria-expanded="true">
-                    <span>SYSTEM</span>
+                    <span>운영 구조</span>
                     <span class="nav-arrow">▾</span>
                 </button>
                 <div class="nav-items">
@@ -62,7 +62,7 @@
                 <div class="mini-avatar">Y</div>
                 <div>
                     <div class="mini-name">권예은</div>
-                    <div class="mini-role">Backoffice / API Developer</div>
+                    <div class="mini-role">백오피스 / API 개발자</div>
                 </div>
             </div>
         </div>
@@ -75,8 +75,8 @@
                     <span class="toggle-icon">‹</span>
                 </button>
                 <div class="page-title">
-                    <h1>백엔드 중심이지만 관리자 화면 프론트까지 직접 만들어왔습니다.</h1>
-                    <p>결제 API, 외부 시스템 연동, 운영 관리자 화면까지 다뤄온 경험을 정리했습니다.</p>
+                    <h1>실무에서 다뤘던 결제·매출 운영 흐름을 포트폴리오로 정리했습니다.</h1>
+                    <p>단순 CRUD가 아니라 승인, 취소, 매출 반영, 외부전송, 알림톡, 정산까지 이어지는 백오피스 흐름을 구현했습니다.</p>
                 </div>
             </div>
             <div class="top-actions">
@@ -88,7 +88,7 @@
         <section class="content">
             <section class="impact-hero reveal" id="projects">
                 <div class="impact-copy">
-                    <div class="eyebrow">CAREER PORTFOLIO</div>
+                    <div class="eyebrow">경력 포트폴리오</div>
                     <h2>
                         결제와 운영 백오피스 경험을 바탕으로 만든<br />
                         관리자 시스템 포트폴리오입니다.
@@ -141,7 +141,7 @@
                         <span>DB Polling 기반 Agent, Queue 재처리 이력</span>
                     </div>
                     <div class="stat-note">
-                        <span>PORTFOLIO</span>
+                        <span>포트폴리오</span>
                         <strong>관리자 화면 · API · 로그</strong>
                         <p>실무에서 자주 확인했던 데이터와 상태값을 기준으로 구성했습니다.</p>
                     </div>
@@ -150,28 +150,28 @@
 
             <section class="demo-entry reveal delayed" aria-label="포트폴리오 구현 데모 바로가기">
                 <a class="demo-entry-card primary" href="/admin/payment-operations">
-                    <span>LIVE DEMO</span>
+                    <span>데모</span>
                     <strong>PG Mock 운영 콘솔</strong>
                     <p>Mock PG 승인/취소/결과불명/망취소와 이후 매출 원장, 외부전송, 알림톡, 복구 작업 흐름을 확인합니다.</p>
                 </a>
                 <a class="demo-entry-card" href="/admin/sales-ledger">
-                    <span>SALES LEDGER</span>
+                    <span>매출 원장</span>
                     <strong>매출 원장 조회</strong>
                     <p>확정된 결제 완료는 SALE, 취소 완료는 CANCEL 음수 거래로 남기고 원매출은 수정하지 않는 구조를 확인합니다.</p>
                 </a>
                 <a class="demo-entry-card" href="/admin/settlements">
-                    <span>SETTLEMENT</span>
+                    <span>정산</span>
                     <strong>정산 관리</strong>
                     <p>payment 테이블이 아니라 SALE/CANCEL 매출 원장을 기준으로 정산 예정금액을 계산하는 흐름을 확인합니다.</p>
                 </a>
                 <a class="demo-entry-card" href="/admin/database-spec">
-                    <span>DATABASE</span>
+                    <span>DB 명세</span>
                     <strong>DB 명세 보기</strong>
                     <p>결제, 취소, 매출 원장, 외부전송, 알림톡, 복구 작업, 정산 테이블의 역할과 컬럼 구조를 확인합니다.</p>
                 </a>
                 <a class="demo-entry-card" href="/swagger-ui/index.html" target="_blank" rel="noopener">
-                    <span>API DOCS</span>
-                    <strong>Swagger API 문서</strong>
+                    <span>API 문서</span>
+                    <strong>Swagger 문서</strong>
                     <p>요청/응답 DTO와 주요 상태값을 API 기준으로 확인할 수 있습니다.</p>
                 </a>
             </section>
@@ -186,15 +186,15 @@
 
             <div class="table-wrap">
                 <div class="result-meta">
-                    <span><strong id="resultCount">0</strong> projects</span>
-                    <span>행을 클릭하면 프로젝트 상세 내용을 확인할 수 있습니다.</span>
+                    <span>등록된 프로젝트 <strong id="resultCount">0</strong>건</span>
+                    <span>행을 클릭하면 상세 내용을 확인할 수 있습니다.</span>
                 </div>
                 <div id="projectTable" class="project-table" aria-label="경력 프로젝트 목록"></div>
             </div>
 
             <section class="section" id="overview">
                 <div class="section-head">
-                    <div class="section-label">SUMMARY</div>
+                    <div class="section-label">경력 요약</div>
                     <h2>경력 요약</h2>
                     <p>관리자 화면, 연동 API, 결제/매출, 회원/포인트, 알림톡 업무를 다뤄온 경험을 정리했습니다.</p>
                 </div>
@@ -211,14 +211,14 @@
                     </div>
 
                     <div class="plain-panel">
-                        <div class="plain-row"><span>Main Stack</span><strong>C# · .NET · MS-SQL · jQuery · Dapper</strong></div>
-                        <div class="plain-row"><span>Expansion</span><strong>Java · Spring Boot · JPA · MySQL Profile</strong></div>
+                        <div class="plain-row"><span>주요 기술</span><strong>C# · .NET · MS-SQL · jQuery · Dapper</strong></div>
+                        <div class="plain-row"><span>확장 기술</span><strong>Java · Spring Boot · JPA · MySQL Profile</strong></div>
                         <div class="plain-row">
                             <span>강점</span>
                             <strong>운영자 화면 흐름 이해, 상품·매장 데이터 기준 조율, 외부 연동 실패 추적, SQL 기반 데이터 처리, 담당자 간 API 응답 기준 협의</strong>
                         </div>
                         <div class="plain-row">
-                            <span>Portfolio</span>
+                            <span>포트폴리오</span>
                             <strong>실무에서 다뤘던 관리자 화면·결제·매출·연동 흐름을 Spring Boot 기반으로 정리</strong>
                         </div>
                     </div>
@@ -227,7 +227,7 @@
 
             <section class="section" id="operations">
                 <div class="section-head">
-                    <div class="section-label">WORK EXPERIENCE</div>
+                    <div class="section-label">실무 경험</div>
                     <h2>실무에서 했던 일</h2>
                     <p>
                         실제 담당했던 업무를 기준으로, 어떤 상황에서 어떻게 처리했는지 정리했습니다.
@@ -236,7 +236,7 @@
 
                 <div class="table-wrap">
                     <table class="scope-table">
-                        <thead>
+                        <tbody>
                             <tr>
                                 <td>외부 API 요청/응답 추적</td>
                                 <td>
@@ -340,7 +340,7 @@
 
             <section class="section" id="scope">
                 <div class="section-head">
-                    <div class="section-label">IMPLEMENTATION SCOPE</div>
+                    <div class="section-label">구현 범위</div>
                     <h2>포트폴리오 구현 범위 및 진행 상태</h2>
                     <p>
                         지금 바로 확인할 수 있는 부분, 구현 중인 부분, 이후 확장 예정인 부분을 나눠서 정리했습니다.
@@ -359,17 +359,6 @@
                         </tr>
                         </thead>
                         <tbody>
-                       <table class="scope-table">
-    <thead>
-            <tr>
-                <th>구분</th>
-                <th>상태</th>
-                <th>현재 구현 범위</th>
-                <th>실무 경험</th>
-                <th>화면/기술적으로 보여줄 부분</th>
-            </tr>
-            </thead>
-            <tbody>
                 <tr>
                     <td>Mock PG 결제 승인</td>
                     <td><span class="status-badge done">시연 가능</span></td>
@@ -588,11 +577,11 @@
 
             <section class="section" id="workflow">
                 <div class="section-head">
-                    <div class="section-label">DEVELOPMENT FLOW</div>
+                    <div class="section-label">개발 흐름</div>
                     <h2>개발 진행 흐름</h2>
                     <p>
-                        PG 결제 흐름을 먼저 시연 가능하게 만들고,
-                        이후 외부 전송, 알림톡 Queue, 통계/정산 순서로 확장하고 있습니다.
+                        결제 승인/취소에서 매출 원장, 외부전송, 알림톡 Queue, 복구 작업, 정산 기본 흐름까지
+                        공개 데모에서 확인할 수 있는 순서로 정리했습니다.
                     </p>
                 </div>
 
@@ -636,60 +625,72 @@
                     <div class="workflow-step">
                         <div class="workflow-step-head">
                             <span class="workflow-no">04</span>
-                            <span class="status-badge progress">진행 중</span>
+                            <span class="status-badge done">완료</span>
                         </div>
-                        <strong>외부 전송 실패/재처리 흐름 구현</strong>
+                        <strong>외부전송 대기/실패 흐름 구현</strong>
                         <p>
-                            매출 거래 생성 이후 외부 전송 대상을 만들고,
-                            Mock 전송 결과에 따라 성공/실패/재전송 상태를 관리하는 기능을 보강하고 있습니다.
+                            매출 거래 생성 이후 외부전송 대상을 만들고,
+                            Mock 전송 상태와 실패 사유를 별도로 관리하는 구조를 구현했습니다.
                         </p>
                     </div>
 
                     <div class="workflow-step">
                         <div class="workflow-step-head">
                             <span class="workflow-no">05</span>
-                            <span class="status-badge progress">진행 중</span>
+                            <span class="status-badge done">완료</span>
                         </div>
-                        <strong>알림톡 Queue / Mock Agent 연결</strong>
+                        <strong>알림톡 Queue 생성 구조 구현</strong>
                         <p>
-                            결제 승인, 취소, 외부 전송 실패 이벤트를 알림톡 Queue로 연결하고,
-                            Mock Agent가 Queue를 읽어 발송 성공/실패와 재시도 이력을 남기는 구조를 구현하고 있습니다.
+                            결제 승인, 취소, 외부전송 실패 이벤트를 알림톡 Queue로 연결했습니다.
+                            실제 자동 발송 Worker는 후속 확장 범위로 분리했습니다.
                         </p>
                     </div>
 
                     <div class="workflow-step">
                         <div class="workflow-step-head">
                             <span class="workflow-no">06</span>
-                            <span class="status-badge planned">진행 예정</span>
+                            <span class="status-badge done">완료</span>
                         </div>
-                        <strong>매출/정산 통계 및 성능 테스트</strong>
+                        <strong>RecoveryTask 조회/재처리 API 구현</strong>
                         <p>
-                            SALE/CANCEL 거래 원장을 기준으로 매출 통계를 조회하고,
-                            100만 건 테스트 데이터를 넣어 일반 조회, View, 집계 테이블 방식의 성능 차이를 비교할 예정입니다.
+                            승인 결과불명, 취소 결과불명, 망취소 필요, 후속처리 실패 건을
+                            RecoveryTask로 추적하고 목록/상세/재처리 API에서 확인할 수 있게 구성했습니다.
                         </p>
                     </div>
 
                     <div class="workflow-step">
                         <div class="workflow-step-head">
                             <span class="workflow-no">07</span>
-                            <span class="status-badge planned">진행 예정</span>
+                            <span class="status-badge done">완료</span>
                         </div>
-                        <strong>정산 배치 및 수수료 정책 확장</strong>
+                        <strong>매출 원장 조회와 요약 집계 구현</strong>
                         <p>
-                            PG사/결제수단별 수수료 정책을 관리하고,
-                            미정산 매출을 기준으로 DRAFT 정산 데이터를 생성하는 배치 흐름을 확장할 예정입니다.
+                            SALE/CANCEL 원장을 DB-side paging으로 조회하고,
+                            조회 조건 전체 기준의 summary 집계를 제공하도록 구성했습니다.
                         </p>
                     </div>
 
                     <div class="workflow-step">
                         <div class="workflow-step-head">
                             <span class="workflow-no">08</span>
-                            <span class="status-badge planned">진행 예정</span>
+                            <span class="status-badge done">완료</span>
                         </div>
-                        <strong>테스트 코드 및 README 정리</strong>
+                        <strong>정산 배치 기본 흐름 구현</strong>
                         <p>
-                            결제 승인/취소, 매출 생성, 외부 전송 실패, 알림톡 발송 실패,
-                            정산 배치 흐름을 테스트 코드와 README로 정리할 예정입니다.
+                            미정산 SALE/CANCEL 원장을 기준으로 정산 데이터를 생성하고,
+                            확정/지급 완료 상태로 이어지는 기본 흐름을 구현했습니다.
+                        </p>
+                    </div>
+
+                    <div class="workflow-step">
+                        <div class="workflow-step-head">
+                            <span class="workflow-no">09</span>
+                            <span class="status-badge planned">보강 예정</span>
+                        </div>
+                        <strong>자동 Worker와 대량 데이터 검증 확장</strong>
+                        <p>
+                            알림톡 자동 발송 Worker, 외부전송 자동 재시도 Worker,
+                            입점몰 정산 확장, 대량 데이터 성능 테스트는 후속 보강 범위입니다.
                         </p>
                     </div>
                 </div>
