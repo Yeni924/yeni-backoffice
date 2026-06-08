@@ -63,3 +63,20 @@ function initializeAdminLogout() {
         window.location.href = "/dashboard";
     });
 }
+
+async function parseApiResponse(response) {
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+    if (response.ok) {
+        return data;
+    }
+    const fieldMessages = Array.isArray(data.fieldErrors) && data.fieldErrors.length > 0
+        ? " " + data.fieldErrors.map(function (fieldError) {
+            return fieldError.field + ": " + fieldError.message;
+        }).join(" / ")
+        : "";
+    const requestId = data.requestId ? " (requestId: " + data.requestId + ")" : "";
+    const error = new Error((data.message || "요청 처리에 실패했습니다.") + fieldMessages + requestId);
+    error.response = data;
+    throw error;
+}

@@ -25,7 +25,7 @@ public class MockPaymentGateway implements PaymentGateway {
     @Override
     public PaymentApproveResult approve(PaymentApproveCommand command) {
         if (command.orderNo().toUpperCase().contains("UNKNOWN")) {
-            return new PaymentApproveResult(provider(), false, PaymentStatus.UNKNOWN, null, "U000", "Mock approve result unknown.", null, true);
+            return new PaymentApproveResult(provider(), false, PaymentStatus.APPROVE_UNKNOWN, null, "U000", "Mock approve result unknown.", null, true);
         }
         if (command.orderNo().toUpperCase().contains("FAIL")) {
             return new PaymentApproveResult(provider(), false, PaymentStatus.APPROVE_FAILED, null, "9999", "Mock approve failure.", null, false);
@@ -37,7 +37,7 @@ public class MockPaymentGateway implements PaymentGateway {
     @Override
     public PaymentCancelResult cancel(PaymentCancelCommand command) {
         if (command.idempotencyKey().toUpperCase().contains("UNKNOWN")) {
-            return new PaymentCancelResult(provider(), false, PaymentStatus.UNKNOWN, "U000", "Mock cancel result unknown.", true);
+            return new PaymentCancelResult(provider(), false, PaymentStatus.CANCEL_UNKNOWN, "U000", "Mock cancel result unknown.", true);
         }
         if (command.idempotencyKey().toUpperCase().contains("FAIL")) {
             return new PaymentCancelResult(provider(), false, PaymentStatus.CANCEL_FAILED, "9999", "Mock cancel failure.", false);
@@ -47,8 +47,11 @@ public class MockPaymentGateway implements PaymentGateway {
 
     @Override
     public PaymentQueryResult query(PaymentQueryCommand command) {
+        if (command.orderNo() != null && command.orderNo().toUpperCase().contains("RECOVERABLE")) {
+            return new PaymentQueryResult(provider(), true, PaymentStatus.APPROVED, command.tid(), "0000", "Mock query confirmed approved.");
+        }
         if (command.orderNo() != null && command.orderNo().toUpperCase().contains("UNKNOWN")) {
-            return new PaymentQueryResult(provider(), false, PaymentStatus.UNKNOWN, command.tid(), "U000", "Mock query still unknown.");
+            return new PaymentQueryResult(provider(), false, PaymentStatus.APPROVE_UNKNOWN, command.tid(), "U000", "Mock query still unknown.");
         }
         return new PaymentQueryResult(provider(), true, PaymentStatus.APPROVED, command.tid(), "0000", "Mock query confirmed approved.");
     }

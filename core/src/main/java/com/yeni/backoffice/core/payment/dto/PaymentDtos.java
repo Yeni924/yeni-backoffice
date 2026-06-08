@@ -1,13 +1,19 @@
 package com.yeni.backoffice.core.payment.dto;
 
+import com.yeni.backoffice.core.payment.entity.AlimtalkQueue;
 import com.yeni.backoffice.core.payment.entity.ExternalSendRequest;
+import com.yeni.backoffice.core.payment.entity.PaymentRecoveryTask;
 import com.yeni.backoffice.core.payment.entity.PaymentTransaction;
 import com.yeni.backoffice.core.payment.entity.PgApiLog;
 import com.yeni.backoffice.core.payment.entity.PgFeePolicy;
 import com.yeni.backoffice.core.payment.entity.SalesTransaction;
 import com.yeni.backoffice.core.payment.entity.SettlementDetail;
+import com.yeni.backoffice.core.payment.entity.SettlementFeeDetail;
 import com.yeni.backoffice.core.payment.entity.SettlementStatement;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,128 +28,98 @@ public final class PaymentDtos {
 
     @Schema(description = "Inicis StdPay 결제 준비 요청")
     public record InicisReadyRequest(
-            @Schema(description = "내부 주문번호", example = "ORDER-20260603-001")
+            @Schema(description = "주문번호", example = "ORDER-20260603-001")
+            @NotBlank(message = "주문번호는 필수입니다.")
             String orderNo,
             @Schema(description = "결제 요청 금액", example = "12000")
+            @NotNull(message = "결제금액은 필수입니다.")
+            @Positive(message = "결제금액은 0보다 커야 합니다.")
             BigDecimal amount,
             @Schema(description = "통화 코드", example = "KRW")
             String currency,
             @Schema(description = "구매자명", example = "Portfolio Buyer")
+            @NotBlank(message = "구매자명은 필수입니다.")
             String buyerName,
             @Schema(description = "상품명", example = "PG Adapter Mock Item")
+            @NotBlank(message = "상품명은 필수입니다.")
             String productName
     ) {
     }
 
     @Schema(description = "Inicis StdPay 결제 준비 응답")
     public record InicisReadyResponse(
-            @Schema(description = "Mock 가맹점 ID")
-            String mid,
-            @Schema(description = "내부 주문번호")
-            String orderNo,
-            @Schema(description = "결제 요청 금액")
-            BigDecimal amount,
-            @Schema(description = "통화 코드")
-            String currency,
-            @Schema(description = "Mock 인증 토큰")
-            String authToken,
-            @Schema(description = "결제 요청 서명값")
-            String signature,
-            @Schema(description = "signKey 해시값. 실제 운영 키는 저장하지 않습니다.")
-            String mKey,
-            @Schema(description = "결제 결과 수신 URL")
-            String returnUrl,
-            @Schema(description = "결제창 닫기 URL")
-            String closeUrl,
-            @Schema(description = "표준결제 요청 파라미터")
-            Map<String, String> stdPayParams
+            @Schema(description = "Mock 가맹점 ID") String mid,
+            @Schema(description = "주문번호") String orderNo,
+            @Schema(description = "결제 요청 금액") BigDecimal amount,
+            @Schema(description = "통화 코드") String currency,
+            @Schema(description = "Mock 인증 토큰") String authToken,
+            @Schema(description = "결제 요청 서명값") String signature,
+            @Schema(description = "signKey 해시값. 실제 운영 키는 저장하지 않습니다.") String mKey,
+            @Schema(description = "결제 결과 수신 URL") String returnUrl,
+            @Schema(description = "결제창 닫기 URL") String closeUrl,
+            @Schema(description = "표준결제 요청 파라미터") Map<String, String> stdPayParams
     ) {
     }
 
     @Schema(description = "Inicis StdPay 인증 결과 수신 요청")
     public record InicisAuthResultRequest(
-            @Schema(description = "PG 가맹점 ID", example = "INIpayTest")
-            String mid,
-            @Schema(description = "내부 주문번호", example = "ORDER-20260603-001")
-            String orderNo,
-            @Schema(description = "결제 준비 단계에서 발급된 Mock 인증 토큰")
-            String authToken,
-            @Schema(description = "인증 금액", example = "12000")
-            BigDecimal amount,
-            @Schema(description = "PG 인증 결과 코드. 0000이면 성공", example = "0000")
-            String resultCode,
-            @Schema(description = "PG 인증 결과 메시지", example = "mock auth success")
-            String resultMessage,
-            @Schema(description = "주문번호, 금액, 인증 토큰 기반 검증 서명")
-            String signature
+            @Schema(description = "PG 가맹점 ID", example = "INIpayTest") String mid,
+            @Schema(description = "주문번호", example = "ORDER-20260603-001") String orderNo,
+            @Schema(description = "결제 준비 단계에서 발급한 Mock 인증 토큰") String authToken,
+            @Schema(description = "인증 금액", example = "12000") BigDecimal amount,
+            @Schema(description = "PG 인증 결과 코드. 0000이면 성공", example = "0000") String resultCode,
+            @Schema(description = "PG 인증 결과 메시지", example = "mock auth success") String resultMessage,
+            @Schema(description = "주문번호, 금액, 인증 토큰 기반 검증 서명") String signature
     ) {
     }
 
     @Schema(description = "결제 승인 처리 응답")
     public record InicisApproveResponse(
-            @Schema(description = "결제 거래 ID")
-            Long paymentId,
-            @Schema(description = "내부 주문번호")
-            String orderNo,
-            @Schema(description = "PG 거래번호")
-            String tid,
-            @Schema(description = "결제 상태", example = "APPROVED")
-            String paymentStatus,
-            @Schema(description = "승인 금액")
-            BigDecimal approvedAmount,
-            @Schema(description = "승인 시각")
-            LocalDateTime approvedAt
+            @Schema(description = "결제 거래 ID") Long paymentId,
+            @Schema(description = "주문번호") String orderNo,
+            @Schema(description = "PG 거래번호") String tid,
+            @Schema(description = "결제 상태", example = "APPROVED") String paymentStatus,
+            @Schema(description = "승인 금액") BigDecimal approvedAmount,
+            @Schema(description = "승인 시각") LocalDateTime approvedAt
     ) {
     }
 
     @Schema(description = "결제 취소 요청")
     public record PaymentCancelRequest(
             @Schema(description = "취소 금액. 승인 잔여 금액을 초과할 수 없습니다.", example = "3000")
+            @NotNull(message = "취소금액은 필수입니다.")
+            @Positive(message = "취소금액은 0보다 커야 합니다.")
             BigDecimal cancelAmount,
             @Schema(description = "취소 사유", example = "portfolio partial cancel")
             String cancelReason,
             @Schema(description = "취소 중복 처리 방지 키", example = "CANCEL-20260603-001")
+            @NotBlank(message = "취소 중복 방지 키는 필수입니다.")
             String cancelRequestKey
     ) {
     }
 
     @Schema(description = "결제 취소 응답")
     public record PaymentCancelResponse(
-            @Schema(description = "취소 ID")
-            Long cancelId,
-            @Schema(description = "결제 거래 ID")
-            Long paymentId,
-            @Schema(description = "PG 거래번호")
-            String tid,
-            @Schema(description = "취소 금액")
-            BigDecimal cancelAmount,
-            @Schema(description = "취소 유형", example = "PARTIAL")
-            String cancelType,
-            @Schema(description = "취소 후 결제 상태", example = "PARTIAL_CANCELED")
-            String paymentStatus
+            @Schema(description = "취소 ID") Long cancelId,
+            @Schema(description = "결제 거래 ID") Long paymentId,
+            @Schema(description = "PG 거래번호") String tid,
+            @Schema(description = "취소 금액") BigDecimal cancelAmount,
+            @Schema(description = "취소 유형", example = "PARTIAL") String cancelType,
+            @Schema(description = "취소 후 결제 상태", example = "PARTIAL_CANCELED") String paymentStatus
     ) {
     }
 
     @Schema(description = "결제 거래 조회 응답")
     public record PaymentResponse(
-            @Schema(description = "결제 거래 ID")
-            Long id,
-            @Schema(description = "PG 가맹점 ID")
-            String mid,
-            @Schema(description = "내부 주문번호")
-            String orderNo,
-            @Schema(description = "PG 거래번호")
-            String tid,
-            @Schema(description = "승인 금액")
-            BigDecimal approvedAmount,
-            @Schema(description = "누적 취소 금액")
-            BigDecimal canceledAmount,
-            @Schema(description = "통화 코드")
-            String currency,
-            @Schema(description = "결제 상태")
-            String paymentStatus,
-            @Schema(description = "승인 시각")
-            LocalDateTime approvedAt
+            @Schema(description = "결제 거래 ID") Long id,
+            @Schema(description = "PG 가맹점 ID") String mid,
+            @Schema(description = "주문번호") String orderNo,
+            @Schema(description = "PG 거래번호") String tid,
+            @Schema(description = "승인 금액") BigDecimal approvedAmount,
+            @Schema(description = "누적 취소 금액") BigDecimal canceledAmount,
+            @Schema(description = "통화 코드") String currency,
+            @Schema(description = "결제 상태") String paymentStatus,
+            @Schema(description = "승인 시각") LocalDateTime approvedAt
     ) {
         public static PaymentResponse from(PaymentTransaction payment) {
             return new PaymentResponse(
@@ -191,45 +167,111 @@ public final class PaymentDtos {
         }
     }
 
-    @Schema(description = "매출 거래 조회 응답")
+    @Schema(description = "매출 원장 거래 조회 응답")
     public record SalesResponse(
             Long id,
+            Long paymentId,
+            Long cancelId,
+            Long originalSalesTransactionId,
             String orderNo,
             String tid,
+            String pgTransactionId,
             String saleType,
-            BigDecimal saleAmount,
+            BigDecimal supplyAmount,
             BigDecimal vatAmount,
+            BigDecimal totalAmount,
+            BigDecimal saleAmount,
             String saleStatus,
+            String ledgerStatus,
+            String settlementStatus,
             LocalDate businessDate,
-            Boolean settlementIncludedYn
+            LocalDateTime occurredAt,
+            Boolean settlementIncludedYn,
+            String pgCode,
+            String paymentMethod,
+            Long sellerId,
+            Long orderItemId
     ) {
         public static SalesResponse from(SalesTransaction sales) {
             return new SalesResponse(
                     sales.getId(),
+                    sales.getPaymentId(),
+                    sales.getCancelId(),
+                    sales.getOriginalSalesTransactionId(),
                     sales.getOrderNo(),
                     sales.getTid(),
+                    sales.getPgTransactionId(),
                     sales.getSaleType().name(),
-                    sales.getSaleAmount(),
+                    sales.getSupplyAmount(),
                     sales.getVatAmount(),
+                    sales.getTotalAmount(),
+                    sales.getSaleAmount(),
                     sales.getSaleStatus().name(),
+                    sales.getLedgerStatus().name(),
+                    sales.getSettlementStatus().name(),
                     sales.getBusinessDate(),
-                    sales.getSettlementIncludedYn()
+                    sales.getOccurredAt(),
+                    sales.getSettlementIncludedYn(),
+                    sales.getPgCode(),
+                    sales.getPaymentMethod(),
+                    sales.getSellerId(),
+                    sales.getOrderItemId()
             );
         }
     }
 
-    @Schema(description = "매출 정산 조정 요청")
+    @Schema(description = "매출 원장 요약 응답")
+    public record SalesLedgerSummaryResponse(
+            BigDecimal totalSaleAmount,
+            BigDecimal totalCancelAmount,
+            BigDecimal netSalesAmount,
+            long notSettledCount,
+            long calculatedCount,
+            long settledCount,
+            long paidCount,
+            long carriedOverCount,
+            long excludedCount
+    ) {
+    }
+
+    public record SalesLedgerPageResponse(
+            List<SalesResponse> data,
+            long totalCount,
+            int page,
+            int size,
+            SalesLedgerSummaryResponse summary
+    ) {
+    }
+
+    public record SalesLedgerLinksResponse(
+            Long salesTransactionId,
+            SalesResponse originalSale,
+            PaymentResponse payment,
+            Long cancelId,
+            BigDecimal cumulativeCanceledAmount,
+            BigDecimal cancelableAmount,
+            String cancelReason,
+            LocalDateTime canceledAt,
+            List<ExternalSendResponse> externalSends,
+            List<AlimtalkQueueResponse> alimtalkQueues,
+            List<RecoveryTaskResponse> recoveryTasks,
+            List<SettlementDetailResponse> settlementDetails
+    ) {
+    }
+
     public record SalesAdjustmentRequest(
             @Schema(description = "조정 유형", example = "MANUAL_ADJUST")
+            @NotBlank(message = "조정 유형은 필수입니다.")
             String adjustmentType,
             @Schema(description = "조정 금액", example = "1000")
+            @NotNull(message = "조정금액은 필수입니다.")
             BigDecimal adjustmentAmount,
             @Schema(description = "조정 사유")
             String reason
     ) {
     }
 
-    @Schema(description = "외부 전송 요청 조회 응답")
+    @Schema(description = "외부전송 요청 조회 응답")
     public record ExternalSendResponse(
             Long id,
             Long salesId,
@@ -254,19 +296,122 @@ public final class PaymentDtos {
         }
     }
 
+    @Schema(description = "알림톡 Queue 조회 응답")
+    public record AlimtalkQueueResponse(
+            Long id,
+            Long paymentId,
+            Long salesId,
+            String messageKey,
+            String eventType,
+            String status,
+            Integer retryCount,
+            String lastErrorMessage,
+            LocalDateTime sentAt
+    ) {
+        public static AlimtalkQueueResponse from(AlimtalkQueue queue) {
+            return new AlimtalkQueueResponse(
+                    queue.getId(),
+                    queue.getPaymentId(),
+                    queue.getSalesId(),
+                    queue.getMessageKey(),
+                    queue.getEventType(),
+                    queue.getStatus().name(),
+                    queue.getRetryCount(),
+                    queue.getLastErrorMessage(),
+                    queue.getSentAt()
+            );
+        }
+    }
+
+    @Schema(description = "RecoveryTask 조회 응답")
+    public record RecoveryTaskResponse(
+            Long id,
+            String taskKey,
+            Long paymentId,
+            Long cancelId,
+            String orderNo,
+            String tid,
+            String idempotencyKey,
+            String recoveryType,
+            String status,
+            Integer retryCount,
+            Integer maxRetryCount,
+            String lastErrorMessage,
+            LocalDateTime lastTriedAt,
+            LocalDateTime processedAt,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        public static RecoveryTaskResponse from(PaymentRecoveryTask task) {
+            return new RecoveryTaskResponse(
+                    task.getId(),
+                    task.getTaskKey(),
+                    task.getPaymentId(),
+                    task.getCancelId(),
+                    task.getOrderNo(),
+                    task.getTid(),
+                    task.getIdempotencyKey(),
+                    task.getRecoveryType().name(),
+                    task.getStatus().name(),
+                    task.getRetryCount(),
+                    task.getMaxRetryCount(),
+                    task.getLastErrorMessage(),
+                    task.getLastTriedAt(),
+                    task.getProcessedAt(),
+                    task.getCreatedAt(),
+                    task.getUpdatedAt()
+            );
+        }
+    }
+
+    public record RecoveryTaskPageResponse(
+            List<RecoveryTaskResponse> data,
+            long totalCount,
+            int page,
+            int size
+    ) {
+    }
+
+    @Schema(description = "시나리오 실행 타임라인 단계")
+    public record ScenarioTimelineStep(
+            String stepName,
+            String status,
+            String description,
+            String referenceId,
+            LocalDateTime createdAt
+    ) {
+    }
+
+    @Schema(description = "시나리오 실행 응답")
+    public record ScenarioRunResponse(
+            String scenarioName,
+            String orderNo,
+            Long paymentId,
+            String status,
+            String message,
+            List<ScenarioTimelineStep> timelineSteps
+    ) {
+    }
+
     @Schema(description = "PG 수수료 정책 등록 요청")
     public record PgFeePolicyRequest(
             @Schema(description = "PG사", example = "INICIS")
+            @NotBlank(message = "PG사는 필수입니다.")
             String pgCompany,
             @Schema(description = "가맹점 ID", example = "INIpayTest")
+            @NotBlank(message = "가맹점 ID는 필수입니다.")
             String mid,
             @Schema(description = "결제수단", example = "CARD")
+            @NotBlank(message = "결제수단은 필수입니다.")
             String paymentMethod,
             @Schema(description = "수수료율", example = "0.0250")
+            @NotNull(message = "수수료율은 필수입니다.")
             BigDecimal feeRate,
             @Schema(description = "적용 시작일")
+            @NotNull(message = "적용 시작일은 필수입니다.")
             LocalDate effectiveStartDate,
             @Schema(description = "적용 종료일")
+            @NotNull(message = "적용 종료일은 필수입니다.")
             LocalDate effectiveEndDate
     ) {
     }
@@ -351,10 +496,29 @@ public final class PaymentDtos {
         }
     }
 
-    @Schema(description = "정산 명세 상세 화면 응답")
+    @Schema(description = "정산 수수료 상세 조회 응답")
+    public record SettlementFeeDetailResponse(
+            Long id,
+            Long feePolicyId,
+            BigDecimal feeRate,
+            BigDecimal feeAmount,
+            BigDecimal vatAmount
+    ) {
+        public static SettlementFeeDetailResponse from(SettlementFeeDetail detail) {
+            return new SettlementFeeDetailResponse(
+                    detail.getId(),
+                    detail.getFeePolicyId(),
+                    detail.getFeeRate(),
+                    detail.getFeeAmount(),
+                    detail.getVatAmount()
+            );
+        }
+    }
+
     public record SettlementDetailPageResponse(
             SettlementStatementResponse statement,
-            List<SettlementDetailResponse> details
+            List<SettlementDetailResponse> details,
+            List<SettlementFeeDetailResponse> feeDetails
     ) {
     }
 
@@ -362,11 +526,15 @@ public final class PaymentDtos {
     public record OperationSummaryResponse(
             LocalDate startDate,
             LocalDate endDate,
-            long paymentCount,
+            long approvedPaymentCount,
             BigDecimal approvedAmount,
-            long salesCount,
+            long salesTransactionCount,
             BigDecimal salesAmount,
-            long failedExternalSendCount
+            long readyExternalSendCount,
+            long failedExternalSendCount,
+            long recoveryTaskCount,
+            long readyAlimtalkCount,
+            long failedAlimtalkCount
     ) {
     }
 }

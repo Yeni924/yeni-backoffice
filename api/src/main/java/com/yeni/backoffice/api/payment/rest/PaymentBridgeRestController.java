@@ -7,9 +7,12 @@ import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentBridgeCance
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentQueryResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgLogResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.ScenarioRunResponse;
 import com.yeni.backoffice.core.payment.service.PaymentOperationService;
+import com.yeni.backoffice.core.payment.service.PaymentScenarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,19 +24,23 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/payment-bridge")
+@RequestMapping({"/api/payment-bridge", "/admin/api/payment-operations"})
 @Tag(name = "Payment Bridge", description = "PGB 공통 결제 승인/취소/재조회 API")
 public class PaymentBridgeRestController {
 
     private final PaymentOperationService paymentOperationService;
+    private final PaymentScenarioService paymentScenarioService;
 
-    public PaymentBridgeRestController(PaymentOperationService paymentOperationService) {
+    public PaymentBridgeRestController(
+            PaymentOperationService paymentOperationService,
+            PaymentScenarioService paymentScenarioService) {
         this.paymentOperationService = paymentOperationService;
+        this.paymentScenarioService = paymentScenarioService;
     }
 
     @PostMapping("/payments/approve")
     @Operation(summary = "공통 결제 승인", description = "요청의 pgProvider를 기준으로 Gateway를 라우팅하고 결제 승인 mock을 처리합니다.")
-    public ResponseEntity<PaymentApproveResponse> approve(@RequestBody PaymentApproveRequest request) {
+    public ResponseEntity<PaymentApproveResponse> approve(@Valid @RequestBody PaymentApproveRequest request) {
         return ResponseEntity.ok(paymentOperationService.approvePayment(request));
     }
 
@@ -41,7 +48,7 @@ public class PaymentBridgeRestController {
     @Operation(summary = "공통 결제 취소", description = "결제 거래 기준으로 전체/부분 취소를 처리하고 취소 매출을 생성합니다.")
     public ResponseEntity<PaymentBridgeCancelResponse> cancel(
             @PathVariable Long paymentId,
-            @RequestBody PaymentBridgeCancelRequest request) {
+            @Valid @RequestBody PaymentBridgeCancelRequest request) {
         return ResponseEntity.ok(paymentOperationService.cancelPaymentBridge(paymentId, request));
     }
 
@@ -67,5 +74,11 @@ public class PaymentBridgeRestController {
     @Operation(summary = "결제 PG 로그 조회", description = "결제 거래의 요청/응답/재조회 로그를 조회합니다.")
     public ResponseEntity<List<PgLogResponse>> paymentLogs(@PathVariable Long paymentId) {
         return ResponseEntity.ok(paymentOperationService.getPaymentLogs(paymentId));
+    }
+
+    @PostMapping("/scenarios/{scenarioType}")
+    @Operation(summary = "결제 운영 시나리오 실행", description = "Mock PG/Agent 기반으로 승인, 취소, 결과불명, 망취소, 후속 전송 실패 시나리오를 실행하고 타임라인을 반환합니다.")
+    public ResponseEntity<ScenarioRunResponse> runScenario(@PathVariable String scenarioType) {
+        return ResponseEntity.ok(paymentScenarioService.run(scenarioType));
     }
 }

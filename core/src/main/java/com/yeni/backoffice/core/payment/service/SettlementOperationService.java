@@ -1,9 +1,13 @@
 package com.yeni.backoffice.core.payment.service;
 
+import com.yeni.backoffice.core.common.exception.ConflictException;
+import com.yeni.backoffice.core.common.exception.ErrorCode;
+import com.yeni.backoffice.core.common.exception.NotFoundException;
 import com.yeni.backoffice.core.payment.config.InicisStdPayProperties;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SettlementBatchRunRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SettlementDetailPageResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SettlementDetailResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.SettlementFeeDetailResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SettlementStatementResponse;
 import com.yeni.backoffice.core.payment.entity.PgFeePolicy;
 import com.yeni.backoffice.core.payment.entity.SalesTransaction;
@@ -21,6 +25,7 @@ import com.yeni.backoffice.core.payment.repository.SettlementDetailRepository;
 import com.yeni.backoffice.core.payment.repository.SettlementFeeDetailRepository;
 import com.yeni.backoffice.core.payment.repository.SettlementLogRepository;
 import com.yeni.backoffice.core.payment.repository.SettlementStatementRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +34,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class SettlementOperationService {
@@ -65,10 +69,11 @@ public class SettlementOperationService {
     @Transactional
     public SettlementStatementResponse runDailySettlement(SettlementBatchRunRequest request) {
         LocalDate targetDate = request == null || request.targetDate() == null ? LocalDate.now().minusDays(1) : request.targetDate();
-        settlementStatementRepository.findBySettlementDateAndMid(targetDate, inicisProperties.getMid())
-                .ifPresent(statement -> {
-                    throw new IllegalArgumentException("Settlement statement already exists.");
-                });
+        String mid = inicisProperties.getMid();
+        SettlementStatement existingStatement = settlementStatementRepository.findBySettlementDateAndMid(targetDate, mid).orElse(null);
+        if (existingStatement != null) {
+            return SettlementStatementResponse.from(existingStatement);
+        }
 
         List<SalesTransaction> sales = salesRepository.findByBusinessDateAndSettlementIncludedYnFalseOrderByIdAsc(targetDate);
         SettlementBatchLog batchLog = batchLogRepository.save(SettlementBatchLog.builder()
@@ -92,13 +97,14 @@ public class SettlementOperationService {
             SettlementStatement statement = settlementStatementRepository.save(SettlementStatement.builder()
                     .settlementDate(targetDate)
                     .pgCompany("INICIS")
-                    .mid(inicisProperties.getMid())
+                    .mid(mid)
                     .grossAmount(grossAmount)
                     .feeAmount(feeAmount)
                     .vatAmount(vatAmount)
                     .netAmount(netAmount)
                     .settlementStatus(SettlementStatus.DRAFT)
                     .build());
+            settlementStatementRepository.flush();
 
             for (SalesTransaction sale : sales) {
                 BigDecimal saleFee = calculateFee(sale.getSaleAmount().abs(), feePolicy.getFeeRate());
@@ -124,6 +130,11 @@ public class SettlementOperationService {
             batchLog.complete(sales.size(), 0);
             saveSettlementLog(statement.getId(), "BATCH_RUN", "SUCCESS", "정산 초안 생성 완료");
             return SettlementStatementResponse.from(statement);
+        } catch (DataIntegrityViolationException duplicate) {
+            batchLog.fail("이미 같은 정산일/MID 기준 정산명세가 생성되었습니다.");
+            return settlementStatementRepository.findBySettlementDateAndMid(targetDate, mid)
+                    .map(SettlementStatementResponse::from)
+                    .orElseThrow(() -> new ConflictException(ErrorCode.CONFLICT, "이미 같은 정산일/MID 기준 정산 배치가 실행 중입니다."));
         } catch (RuntimeException e) {
             batchLog.fail(e.getMessage());
             throw e;
@@ -136,25 +147,28 @@ public class SettlementOperationService {
         LocalDate end = endDate == null ? LocalDate.now() : endDate;
         return settlementStatementRepository.findBySettlementDateBetweenOrderBySettlementDateDesc(start, end).stream()
                 .map(SettlementStatementResponse::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public SettlementDetailPageResponse getStatement(Long statementId) {
         SettlementStatement statement = settlementStatementRepository.findById(statementId)
-                .orElseThrow(() -> new IllegalArgumentException("Settlement statement not found."));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.SETTLEMENT_NOT_FOUND));
         List<SettlementDetailResponse> details = settlementDetailRepository.findBySettlementStatementIdOrderByIdAsc(statementId).stream()
                 .map(SettlementDetailResponse::from)
-                .collect(Collectors.toList());
-        return new SettlementDetailPageResponse(SettlementStatementResponse.from(statement), details);
+                .toList();
+        List<SettlementFeeDetailResponse> feeDetails = settlementFeeDetailRepository.findBySettlementStatementIdOrderByIdAsc(statementId).stream()
+                .map(SettlementFeeDetailResponse::from)
+                .toList();
+        return new SettlementDetailPageResponse(SettlementStatementResponse.from(statement), details, feeDetails);
     }
 
     @Transactional
     public SettlementStatementResponse confirmStatement(Long statementId) {
         SettlementStatement statement = settlementStatementRepository.findById(statementId)
-                .orElseThrow(() -> new IllegalArgumentException("Settlement statement not found."));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.SETTLEMENT_NOT_FOUND));
         if (!SettlementStatus.DRAFT.equals(statement.getSettlementStatus())) {
-            throw new IllegalArgumentException("Only draft settlement can be confirmed.");
+            throw new ConflictException(ErrorCode.SETTLEMENT_INVALID_STATUS, "작성 중인 정산명세만 확정할 수 있습니다.");
         }
         settlementDetailRepository.findBySettlementStatementIdOrderByIdAsc(statementId)
                 .forEach(detail -> salesRepository.findById(detail.getSalesId()).ifPresent(SalesTransaction::markSettled));
@@ -166,10 +180,12 @@ public class SettlementOperationService {
     @Transactional
     public SettlementStatementResponse markPaid(Long statementId) {
         SettlementStatement statement = settlementStatementRepository.findById(statementId)
-                .orElseThrow(() -> new IllegalArgumentException("Settlement statement not found."));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.SETTLEMENT_NOT_FOUND));
         if (!SettlementStatus.CONFIRMED.equals(statement.getSettlementStatus())) {
-            throw new IllegalArgumentException("Only confirmed settlement can be paid.");
+            throw new ConflictException(ErrorCode.SETTLEMENT_INVALID_STATUS, "확정된 정산명세만 지급 처리할 수 있습니다.");
         }
+        settlementDetailRepository.findBySettlementStatementIdOrderByIdAsc(statementId)
+                .forEach(detail -> salesRepository.findById(detail.getSalesId()).ifPresent(SalesTransaction::markPaid));
         statement.markPaid();
         saveSettlementLog(statementId, "PAY", "SUCCESS", "정산 지급 처리 완료");
         return SettlementStatementResponse.from(statement);

@@ -12,4 +12,6 @@ public interface ExternalSendRequestRepository extends JpaRepository<ExternalSen
     Optional<ExternalSendRequest> findByRequestKey(String requestKey);
 
     List<ExternalSendRequest> findBySendStatusOrderByIdAsc(ExternalSendStatus sendStatus);
+
+    List<ExternalSendRequest> findBySalesIdOrderByIdAsc(Long salesId);
 }

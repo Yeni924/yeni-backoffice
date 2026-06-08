@@ -50,10 +50,55 @@
 }
 
 .db-card table {
-    min-width: 760px;
+    min-width: 980px;
 }
 
-.db-card td:nth-child(3) {
+.db-card td:nth-child(6) {
     white-space: normal;
     line-height: 1.5;
+}
+
+.db-card th:nth-child(3),
+.db-card th:nth-child(4),
+.db-card td:nth-child(3),
+.db-card td:nth-child(4) {
+    width: 84px;
+    text-align: center;
+}
+
+.db-card th:nth-child(5),
+.db-card td:nth-child(5) {
+    width: 140px;
+}
+
+.db-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.db-flag.pk {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.db-flag.nullable {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.db-flag.required {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.db-muted {
+    color: #94a3b8;
+    font-weight: 800;
 }

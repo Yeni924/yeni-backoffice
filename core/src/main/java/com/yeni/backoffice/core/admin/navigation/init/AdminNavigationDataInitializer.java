@@ -33,16 +33,18 @@ public class AdminNavigationDataInitializer implements CommandLineRunner {
             return;
         }
 
-        AdminNavigationGroup portfolioGroup = new AdminNavigationGroup(null, "PORTFOLIO", "PORTFOLIO", 1, true);
-        AdminNavigationGroup commerceGroup = new AdminNavigationGroup(null, "COMMERCE_ADMIN", "COMMERCE ADMIN", 2, true);
-        AdminNavigationGroup operationGroup = new AdminNavigationGroup(null, "OPERATION", "OPERATION", 3, true);
+        AdminNavigationGroup portfolioGroup = new AdminNavigationGroup(null, "PORTFOLIO", "포트폴리오", 1, true);
+        AdminNavigationGroup commerceGroup = new AdminNavigationGroup(null, "COMMERCE_ADMIN", "커머스 관리", 2, true);
+        AdminNavigationGroup operationGroup = new AdminNavigationGroup(null, "OPERATION", "운영 관리", 3, true);
         navigationGroupRepository.saveAll(Arrays.asList(portfolioGroup, commerceGroup, operationGroup));
 
         navigationItemRepository.saveAll(Arrays.asList(
-                item(portfolioGroup, "Overview", "/dashboard", "OV", 1, AdminRole.USER),
-                item(portfolioGroup, "PG Operations", "/admin/payment-operations", "PG", 2, AdminRole.USER),
-                item(portfolioGroup, "DB Specification", "/admin/database-spec", "DB", 3, AdminRole.USER),
-                item(operationGroup, "Menu Management", "/admin/navigation", "MN", 1, AdminRole.ADMIN)
+                item(portfolioGroup, "대시보드", "/dashboard", "홈", 1, AdminRole.USER),
+                item(portfolioGroup, "PG 운영", "/admin/payment-operations", "PG", 2, AdminRole.USER),
+                item(portfolioGroup, "매출 원장", "/admin/payment-operations/sales-ledger", "매", 3, AdminRole.USER),
+                item(portfolioGroup, "정산 관리", "/admin/payment-operations/settlements", "정", 4, AdminRole.USER),
+                item(portfolioGroup, "DB 명세", "/admin/database-spec", "DB", 5, AdminRole.USER),
+                item(operationGroup, "메뉴 관리", "/admin/navigation", "메", 1, AdminRole.ADMIN)
         ));
     }
 
@@ -50,6 +52,8 @@ public class AdminNavigationDataInitializer implements CommandLineRunner {
         Set<String> visibleUrls = Set.of(
                 "/dashboard",
                 "/admin/payment-operations",
+                "/admin/payment-operations/sales-ledger",
+                "/admin/payment-operations/settlements",
                 "/admin/database-spec",
                 "/admin/navigation"
         );
@@ -62,17 +66,19 @@ public class AdminNavigationDataInitializer implements CommandLineRunner {
 
         AdminNavigationGroup portfolioGroup = navigationGroupRepository.findByGroupCode("PORTFOLIO")
                 .orElseGet(() -> navigationGroupRepository.save(
-                        new AdminNavigationGroup(null, "PORTFOLIO", "PORTFOLIO", 1, true)
+                        new AdminNavigationGroup(null, "PORTFOLIO", "포트폴리오", 1, true)
                 ));
         AdminNavigationGroup operationGroup = navigationGroupRepository.findByGroupCode("OPERATION")
                 .orElseGet(() -> navigationGroupRepository.save(
-                        new AdminNavigationGroup(null, "OPERATION", "OPERATION", 3, true)
+                        new AdminNavigationGroup(null, "OPERATION", "운영 관리", 3, true)
                 ));
 
-        ensureMenu(portfolioGroup, "Overview", "/dashboard", "OV", 1, AdminRole.USER);
-        ensureMenu(portfolioGroup, "PG Operations", "/admin/payment-operations", "PG", 2, AdminRole.USER);
-        ensureMenu(portfolioGroup, "DB Specification", "/admin/database-spec", "DB", 3, AdminRole.USER);
-        ensureMenu(operationGroup, "Menu Management", "/admin/navigation", "MN", 1, AdminRole.ADMIN);
+        ensureMenu(portfolioGroup, "대시보드", "/dashboard", "홈", 1, AdminRole.USER);
+        ensureMenu(portfolioGroup, "PG 운영", "/admin/payment-operations", "PG", 2, AdminRole.USER);
+        ensureMenu(portfolioGroup, "매출 원장", "/admin/payment-operations/sales-ledger", "매", 3, AdminRole.USER);
+        ensureMenu(portfolioGroup, "정산 관리", "/admin/payment-operations/settlements", "정", 4, AdminRole.USER);
+        ensureMenu(portfolioGroup, "DB 명세", "/admin/database-spec", "DB", 5, AdminRole.USER);
+        ensureMenu(operationGroup, "메뉴 관리", "/admin/navigation", "메", 1, AdminRole.ADMIN);
     }
 
     private void ensureMenu(

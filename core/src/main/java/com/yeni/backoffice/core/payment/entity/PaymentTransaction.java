@@ -12,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,7 +30,8 @@ import java.time.LocalDateTime;
         name = "payment_transaction",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_payment_transaction_order_no", columnNames = "orderNo"),
-                @UniqueConstraint(name = "uk_payment_transaction_tid", columnNames = "tid")
+                @UniqueConstraint(name = "uk_payment_transaction_tid", columnNames = "tid"),
+                @UniqueConstraint(name = "uk_payment_transaction_approval_key", columnNames = "approvalRequestKey")
         }
 )
 public class PaymentTransaction extends BaseTimeEntity {
@@ -52,6 +54,9 @@ public class PaymentTransaction extends BaseTimeEntity {
     @Column(nullable = false, length = 120)
     private String tid;
 
+    @Column(length = 120)
+    private String approvalRequestKey;
+
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal approvedAmount;
 
@@ -71,6 +76,9 @@ public class PaymentTransaction extends BaseTimeEntity {
 
     @Column(length = 200)
     private String failureReason;
+
+    @Version
+    private Long version;
 
     public void cancel(BigDecimal amount) {
         this.canceledAmount = this.canceledAmount.add(amount);
