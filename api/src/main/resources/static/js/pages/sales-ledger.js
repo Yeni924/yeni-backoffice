@@ -95,7 +95,10 @@
         params.append("page", "0");
         params.append("size", "100");
 
-        const response = await fetch("/admin/api/sales-ledger?" + params.toString());
+        const request = fetch("/admin/api/sales-ledger?" + params.toString());
+        const response = window.AppLoading
+            ? await window.AppLoading.track(request, "매출 원장을 조회 중입니다")
+            : await request;
         lastPage = await parseApiResponse(response);
         table.setData(lastPage.data || []);
         renderSummary(lastPage.summary);
@@ -140,10 +143,13 @@
     }
 
     async function openDetail(row) {
-        const [detail, links] = await Promise.all([
+        const request = Promise.all([
             fetchJson("/admin/api/sales-ledger/" + row.id),
             fetchJson("/admin/api/sales-ledger/" + row.id + "/links")
         ]);
+        const [detail, links] = window.AppLoading
+            ? await window.AppLoading.track(request, "상세 정보를 불러오는 중입니다")
+            : await request;
         document.getElementById("salesDetailTitle").textContent = "매출 영수증 #" + detail.id;
         document.getElementById("salesDetailBody").innerHTML = renderReceipt(detail, links);
         document.getElementById("salesDetailModal").hidden = false;

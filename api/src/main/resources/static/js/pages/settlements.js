@@ -67,11 +67,14 @@
         button.disabled = true;
         button.textContent = "정산 배치 실행 중...";
         try {
-            const response = await fetch("/admin/api/settlements/batch/run", {
+            const request = fetch("/admin/api/settlements/batch/run", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({targetDate: targetDate})
             });
+            const response = window.AppLoading
+                ? await window.AppLoading.track(request, "정산 배치를 실행 중입니다")
+                : await request;
             await parseApiResponse(response);
             await refresh();
         } finally {
@@ -85,7 +88,10 @@
         appendParam(params, "startDate", document.getElementById("settlementStartDate").value);
         appendParam(params, "endDate", document.getElementById("settlementEndDate").value);
 
-        const response = await fetch("/admin/api/settlements" + (params.toString() ? "?" + params.toString() : ""));
+        const request = fetch("/admin/api/settlements" + (params.toString() ? "?" + params.toString() : ""));
+        const response = window.AppLoading
+            ? await window.AppLoading.track(request, "정산 명세를 조회 중입니다")
+            : await request;
         rows = await parseApiResponse(response);
         applyFilters();
     }
@@ -140,7 +146,10 @@
     }
 
     async function openSettlementDetail(row) {
-        const response = await fetch("/admin/api/settlements/" + row.id);
+        const request = fetch("/admin/api/settlements/" + row.id);
+        const response = window.AppLoading
+            ? await window.AppLoading.track(request, "정산 상세를 불러오는 중입니다")
+            : await request;
         const page = await parseApiResponse(response);
         document.getElementById("settlementDetailTitle").textContent = "정산 명세 #" + row.id;
         document.getElementById("settlementDetailBody").innerHTML = renderDetail(page);

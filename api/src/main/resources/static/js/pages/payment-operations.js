@@ -449,16 +449,22 @@
     }
 
     async function postJson(url, payload) {
-        const response = await fetch(url, {
+        const request = fetch(url, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify(payload || {})
         });
+        const response = window.AppLoading
+            ? await window.AppLoading.track(request, "요청 처리 중입니다")
+            : await request;
         return parseResponse(response);
     }
 
     async function getJson(url) {
-        const response = await fetch(url);
+        const request = fetch(url);
+        const response = window.AppLoading
+            ? await window.AppLoading.track(request, "데이터 조회 중입니다")
+            : await request;
         return parseResponse(response);
     }
 
