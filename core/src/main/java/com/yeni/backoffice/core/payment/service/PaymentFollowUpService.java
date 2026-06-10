@@ -7,30 +7,35 @@ import com.yeni.backoffice.core.payment.entity.PaymentTransaction;
 import com.yeni.backoffice.core.payment.entity.SalesTransaction;
 import com.yeni.backoffice.core.payment.enums.AlimtalkStatus;
 import com.yeni.backoffice.core.payment.enums.ExternalSendStatus;
-import com.yeni.backoffice.core.payment.enums.RecoveryStatus;
 import com.yeni.backoffice.core.payment.enums.RecoveryType;
 import com.yeni.backoffice.core.payment.repository.AlimtalkQueueRepository;
 import com.yeni.backoffice.core.payment.repository.ExternalSendRequestRepository;
 import com.yeni.backoffice.core.payment.repository.PaymentRecoveryTaskRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PaymentFollowUpService {
 
+    private static final Logger log = LoggerFactory.getLogger(PaymentFollowUpService.class);
+
     private final ExternalSendRequestRepository externalSendRequestRepository;
     private final AlimtalkQueueRepository alimtalkQueueRepository;
     private final PaymentRecoveryTaskRepository recoveryTaskRepository;
+    private final RecoveryTaskRecorder recoveryTaskRecorder;
 
     public PaymentFollowUpService(
             ExternalSendRequestRepository externalSendRequestRepository,
             AlimtalkQueueRepository alimtalkQueueRepository,
-            PaymentRecoveryTaskRepository recoveryTaskRepository) {
+            PaymentRecoveryTaskRepository recoveryTaskRepository,
+            RecoveryTaskRecorder recoveryTaskRecorder) {
         this.externalSendRequestRepository = externalSendRequestRepository;
         this.alimtalkQueueRepository = alimtalkQueueRepository;
         this.recoveryTaskRepository = recoveryTaskRepository;
+        this.recoveryTaskRecorder = recoveryTaskRecorder;
     }
 
     @Transactional
@@ -72,12 +77,10 @@ public class PaymentFollowUpService {
         }
     }
 
-    @Transactional
     public boolean createRecoveryTask(Long paymentId, Long cancelId, RecoveryType recoveryType, String taskKey, String lastErrorMessage) {
         return createRecoveryTask(paymentId, cancelId, null, null, null, recoveryType, taskKey, lastErrorMessage);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean createRecoveryTask(
             Long paymentId,
             Long cancelId,
@@ -91,21 +94,12 @@ public class PaymentFollowUpService {
             return false;
         }
         try {
-            recoveryTaskRepository.save(PaymentRecoveryTask.builder()
-                    .taskKey(taskKey)
-                    .paymentId(paymentId)
-                    .cancelId(cancelId)
-                    .orderNo(orderNo)
-                    .tid(tid)
-                    .idempotencyKey(idempotencyKey)
-                    .recoveryType(recoveryType)
-                    .status(RecoveryStatus.READY)
-                    .retryCount(0)
-                    .maxRetryCount(5)
-                    .lastErrorMessage(lastErrorMessage)
-                    .build());
+            recoveryTaskRecorder.record(paymentId, cancelId, orderNo, tid, idempotencyKey, recoveryType, taskKey, lastErrorMessage);
+            log.warn("RecoveryTask recorded in an independent transaction. type={}, taskKey={}, orderNo={}, tid={}",
+                    recoveryType, taskKey, orderNo, tid);
             return true;
         } catch (DataIntegrityViolationException duplicate) {
+            log.info("RecoveryTask already exists. type={}, taskKey={}", recoveryType, taskKey);
             return false;
         }
     }
