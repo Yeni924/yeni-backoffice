@@ -1,5 +1,21 @@
 package com.yeni.backoffice.core.payment.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
 import com.yeni.backoffice.core.common.exception.BusinessException;
 import com.yeni.backoffice.core.common.exception.ConflictException;
 import com.yeni.backoffice.core.common.exception.ErrorCode;
@@ -8,54 +24,51 @@ import com.yeni.backoffice.core.common.exception.ValidationBusinessException;
 import com.yeni.backoffice.core.payment.adapter.PaymentGatewayAdapter;
 import com.yeni.backoffice.core.payment.adapter.PaymentGatewayAdapterResolver;
 import com.yeni.backoffice.core.payment.config.InicisStdPayProperties;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisApproveResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisAuthResultRequest;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisReadyRequest;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisReadyResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.AlimtalkQueueResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.ExternalSendResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentCancelRequest;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentCancelResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgLogResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.RecoveryTaskResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesAdjustmentRequest;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesLedgerLinksResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesLedgerPageResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesLedgerSummaryResponse;
-import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentApproveRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentApproveResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentBridgeCancelRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentBridgeCancelResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentQueryResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisApproveResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisAuthResultRequest;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisReadyRequest;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.InicisReadyResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentCancelRequest;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentCancelResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgLogResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesAdjustmentRequest;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesLedgerLinksResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesLedgerPageResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesLedgerSummaryResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesResponse;
 import com.yeni.backoffice.core.payment.entity.AuditLog;
-import com.yeni.backoffice.core.payment.entity.AlimtalkQueue;
-import com.yeni.backoffice.core.payment.entity.ExternalSendRequest;
 import com.yeni.backoffice.core.payment.entity.PaymentAuthSession;
 import com.yeni.backoffice.core.payment.entity.PaymentCancel;
-import com.yeni.backoffice.core.payment.entity.PaymentRecoveryTask;
 import com.yeni.backoffice.core.payment.entity.PaymentTransaction;
 import com.yeni.backoffice.core.payment.entity.PgApiLog;
 import com.yeni.backoffice.core.payment.entity.SalesTransaction;
 import com.yeni.backoffice.core.payment.entity.SettlementAdjustment;
-import com.yeni.backoffice.core.payment.enums.AlimtalkStatus;
 import com.yeni.backoffice.core.payment.enums.CancelStatus;
 import com.yeni.backoffice.core.payment.enums.CancelType;
-import com.yeni.backoffice.core.payment.enums.ExternalSendStatus;
-import com.yeni.backoffice.core.payment.enums.LedgerStatus;
 import com.yeni.backoffice.core.payment.enums.LogResultStatus;
 import com.yeni.backoffice.core.payment.enums.PaymentAuthStatus;
-import com.yeni.backoffice.core.payment.enums.PaymentStatus;
 import com.yeni.backoffice.core.payment.enums.PaymentEventType;
+import com.yeni.backoffice.core.payment.enums.PaymentStatus;
 import com.yeni.backoffice.core.payment.enums.PgApiType;
 import com.yeni.backoffice.core.payment.enums.PgCompany;
 import com.yeni.backoffice.core.payment.enums.PgProvider;
-import com.yeni.backoffice.core.payment.enums.RecoveryStatus;
 import com.yeni.backoffice.core.payment.enums.RecoveryType;
-import com.yeni.backoffice.core.payment.enums.SaleStatus;
 import com.yeni.backoffice.core.payment.enums.SaleType;
-import com.yeni.backoffice.core.payment.enums.SalesSettlementStatus;
+import com.yeni.backoffice.core.payment.gateway.PaymentGateway;
+import com.yeni.backoffice.core.payment.gateway.PaymentGatewayRegistry;
+import com.yeni.backoffice.core.payment.gateway.PaymentGatewayRouter;
+import com.yeni.backoffice.core.payment.gateway.command.PaymentApproveCommand;
+import com.yeni.backoffice.core.payment.gateway.command.PaymentCancelCommand;
+import com.yeni.backoffice.core.payment.gateway.command.PaymentQueryCommand;
+import com.yeni.backoffice.core.payment.gateway.result.PaymentApproveResult;
+import com.yeni.backoffice.core.payment.gateway.result.PaymentCancelResult;
+import com.yeni.backoffice.core.payment.gateway.result.PaymentQueryResult;
 import com.yeni.backoffice.core.payment.repository.AuditLogRepository;
 import com.yeni.backoffice.core.payment.repository.PaymentAuthSessionRepository;
 import com.yeni.backoffice.core.payment.repository.PaymentCancelRepository;
@@ -66,33 +79,11 @@ import com.yeni.backoffice.core.payment.repository.SalesTransactionRepository;
 import com.yeni.backoffice.core.payment.repository.SettlementAdjustmentRepository;
 import com.yeni.backoffice.core.payment.support.PaymentDefaults;
 import com.yeni.backoffice.core.payment.util.InicisSignatureService;
-import com.yeni.backoffice.core.payment.gateway.PaymentGateway;
-import com.yeni.backoffice.core.payment.gateway.PaymentGatewayRegistry;
-import com.yeni.backoffice.core.payment.gateway.PaymentGatewayRouter;
-import com.yeni.backoffice.core.payment.gateway.command.PaymentApproveCommand;
-import com.yeni.backoffice.core.payment.gateway.command.PaymentCancelCommand;
-import com.yeni.backoffice.core.payment.gateway.command.PaymentQueryCommand;
-import com.yeni.backoffice.core.payment.gateway.result.PaymentApproveResult;
-import com.yeni.backoffice.core.payment.gateway.result.PaymentCancelResult;
-import com.yeni.backoffice.core.payment.gateway.result.PaymentQueryResult;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class PaymentOperationService {
 
+    private static final Logger log = LoggerFactory.getLogger(PaymentOperationService.class);
     private static final PgCompany PG_COMPANY = PgCompany.INICIS;
 
     private final InicisStdPayProperties inicisProperties;
@@ -219,8 +210,10 @@ public class PaymentOperationService {
             if (payment.getId() != null) {
                 payment.updateStatus(PaymentStatus.NETWORK_CANCEL_REQUIRED, internalFailure.getMessage());
             }
-            followUpService.createRecoveryTask(payment.getId(), null, command.orderNo(), result.tid(), idempotencyKey,
+            boolean recoveryRecorded = followUpService.createRecoveryTask(payment.getId(), null, command.orderNo(), result.tid(), idempotencyKey,
                     recoveryType, taskKey, internalFailure.getMessage());
+            log.error("PG approve succeeded but internal processing failed. recoveryRecorded={}, recoveryType={}, taskKey={}, orderNo={}, tid={}",
+                    recoveryRecorded, recoveryType, taskKey, command.orderNo(), result.tid(), internalFailure);
             saveAudit("PAYMENT", "APPROVE_INTERNAL_FAILED", request.orderNo(),
                     "PG approve succeeded but internal processing failed: " + internalFailure.getMessage());
             return toApproveResponse(payment, provider, "NETWORK_CANCEL_REQUIRED",

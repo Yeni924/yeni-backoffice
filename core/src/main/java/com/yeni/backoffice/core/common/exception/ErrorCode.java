@@ -40,6 +40,7 @@ public enum ErrorCode {
     SETTLEMENT_POLICY_NOT_FOUND(404, "적용 가능한 정산 수수료 정책을 찾을 수 없습니다."),
     SETTLEMENT_EMPTY_TARGET(400, "정산 대상 매출 원장이 없습니다."),
     SETTLEMENT_INVALID_STATUS(409, "정산 상태가 현재 작업에 적합하지 않습니다."),
+    SETTLEMENT_DUPLICATE_EXECUTION(409, "동일 정산일과 MID 기준의 정산 배치가 이미 실행 중이거나 완료되었습니다."),
     SETTLEMENT_FEE_POLICY_INVALID(400, "정산 수수료 정책 요청값이 올바르지 않습니다.");
 
     private final int status;
