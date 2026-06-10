@@ -3,6 +3,7 @@ package com.yeni.backoffice.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yeni.backoffice.core.common.exception.BusinessException;
+import com.yeni.backoffice.core.common.exception.ErrorCode;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentApproveRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentApproveResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentBridgeCancelRequest;
@@ -26,6 +27,7 @@ import com.yeni.backoffice.core.payment.repository.PaymentRecoveryTaskRepository
 import com.yeni.backoffice.core.payment.repository.PaymentTransactionRepository;
 import com.yeni.backoffice.core.payment.repository.SalesTransactionRepository;
 import com.yeni.backoffice.core.payment.repository.SettlementStatementRepository;
+import com.yeni.backoffice.core.payment.service.PaymentFollowUpService;
 import com.yeni.backoffice.core.payment.service.PaymentOperationService;
 import com.yeni.backoffice.core.payment.service.SalesLedgerService;
 import com.yeni.backoffice.core.payment.service.SettlementOperationService;
@@ -37,6 +39,8 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -70,6 +74,9 @@ class YeniBackofficeApplicationTests {
 	private PaymentOperationService paymentOperationService;
 
 	@Autowired
+	private PaymentFollowUpService paymentFollowUpService;
+
+	@Autowired
 	private SalesLedgerService salesLedgerService;
 
 	@Autowired
@@ -95,6 +102,9 @@ class YeniBackofficeApplicationTests {
 
 	@Autowired
 	private SettlementStatementRepository settlementStatementRepository;
+
+	@Autowired
+	private PlatformTransactionManager transactionManager;
 
 	@Test
 	void contextLoads() {
@@ -485,16 +495,40 @@ class YeniBackofficeApplicationTests {
 	}
 
 	@Test
-	void runningSameSettlementDateAndMidTwiceReturnsExistingStatementOnly() {
+	void runningSameSettlementDateAndMidTwiceReturnsConflictAndSingleStatement() {
 		LocalDate targetDate = uniqueSettlementDate();
 
-		SettlementStatementResponse first = settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate));
-		SettlementStatementResponse second = settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate));
+		settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate));
 
-		assertThat(second.id()).isEqualTo(first.id());
+		assertThatThrownBy(() -> settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate)))
+				.isInstanceOfSatisfying(BusinessException.class, exception ->
+						assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.SETTLEMENT_DUPLICATE_EXECUTION));
 		assertThat(settlementStatementRepository.findAll().stream()
 				.filter(statement -> targetDate.equals(statement.getSettlementDate()))
 				.count()).isEqualTo(1);
+	}
+
+	@Test
+	void recoveryTaskSurvivesOuterTransactionRollback() {
+		String suffix = UUID.randomUUID().toString();
+		String taskKey = "APPROVE_INTERNAL_SAVE_FAILED-" + suffix;
+		TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+
+		assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
+			paymentFollowUpService.createRecoveryTask(
+					null,
+					null,
+					"ORDER-" + suffix,
+					"TID-" + suffix,
+					"APPROVE-" + suffix,
+					RecoveryType.APPROVE_INTERNAL_SAVE_FAILED,
+					taskKey,
+					"강제 롤백 테스트"
+			);
+			throw new IllegalStateException("outer transaction rollback");
+		})).isInstanceOf(IllegalStateException.class);
+
+		assertThat(recoveryTaskRepository.findByTaskKey(taskKey)).isPresent();
 	}
 
 	@Test
@@ -511,8 +545,9 @@ class YeniBackofficeApplicationTests {
 		assertThat(paid.settlementStatus()).isEqualTo("PAID");
 		assertThatThrownBy(() -> settlementOperationService.markPaid(draft.id()))
 				.isInstanceOf(BusinessException.class);
-		assertThat(settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate)).id())
-				.isEqualTo(draft.id());
+		assertThatThrownBy(() -> settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate)))
+				.isInstanceOfSatisfying(BusinessException.class, exception ->
+						assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.SETTLEMENT_DUPLICATE_EXECUTION));
 	}
 
 	@Test
