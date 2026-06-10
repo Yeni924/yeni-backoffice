@@ -31,6 +31,7 @@ public class ApiExceptionAdvice {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException exception, HttpServletRequest request) {
         ErrorCode errorCode = exception.getErrorCode();
+        logBusinessException(errorCode, exception, request);
         return build(HttpStatus.valueOf(errorCode.getStatus()), errorCode.name(), exception.getMessage(), request, null);
     }
 
@@ -42,6 +43,9 @@ public class ApiExceptionAdvice {
                 .sorted(Comparator.comparing(FieldError::getField))
                 .map(error -> new FieldErrorResponse(error.getField(), error.getDefaultMessage(), sanitizeRejectedValue(error.getRejectedValue())))
                 .toList();
+        log.warn("Request validation failed. code={}, method={}, path={}, requestId={}, fields={}",
+                ErrorCode.VALIDATION_ERROR.name(), request.getMethod(), request.getRequestURI(), requestId(),
+                fieldErrors.stream().map(FieldErrorResponse::field).toList());
         return build(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR.name(), ErrorCode.VALIDATION_ERROR.getDefaultMessage(), request, fieldErrors);
     }
 
@@ -55,6 +59,9 @@ public class ApiExceptionAdvice {
                         violation.getMessage(),
                         sanitizeRejectedValue(violation.getInvalidValue())))
                 .toList();
+        log.warn("Constraint validation failed. code={}, method={}, path={}, requestId={}, fields={}",
+                ErrorCode.VALIDATION_ERROR.name(), request.getMethod(), request.getRequestURI(), requestId(),
+                fieldErrors.stream().map(FieldErrorResponse::field).toList());
         return build(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR.name(), ErrorCode.VALIDATION_ERROR.getDefaultMessage(), request, fieldErrors);
     }
 
@@ -63,6 +70,8 @@ public class ApiExceptionAdvice {
             MissingServletRequestParameterException exception,
             HttpServletRequest request) {
         String message = "필수 요청 파라미터가 누락되었습니다: " + exception.getParameterName();
+        log.warn("Required request parameter is missing. method={}, path={}, requestId={}, parameter={}",
+                request.getMethod(), request.getRequestURI(), requestId(), exception.getParameterName());
         return build(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST.name(), message, request, null);
     }
 
@@ -71,6 +80,8 @@ public class ApiExceptionAdvice {
             MethodArgumentTypeMismatchException exception,
             HttpServletRequest request) {
         String message = "지원하지 않는 요청값입니다: " + exception.getName();
+        log.warn("Request parameter type mismatch. method={}, path={}, requestId={}, parameter={}",
+                request.getMethod(), request.getRequestURI(), requestId(), exception.getName());
         return build(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST.name(), message, request, null);
     }
 
@@ -78,6 +89,8 @@ public class ApiExceptionAdvice {
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException exception,
             HttpServletRequest request) {
+        log.warn("Request JSON cannot be parsed. method={}, path={}, requestId={}",
+                request.getMethod(), request.getRequestURI(), requestId());
         return build(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST.name(), "요청 JSON을 해석할 수 없습니다.", request, null);
     }
 
@@ -85,6 +98,8 @@ public class ApiExceptionAdvice {
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
             DataIntegrityViolationException exception,
             HttpServletRequest request) {
+        log.info("Data integrity conflict. code={}, method={}, path={}, requestId={}",
+                ErrorCode.DATA_INTEGRITY_VIOLATION.name(), request.getMethod(), request.getRequestURI(), requestId());
         return build(
                 HttpStatus.CONFLICT,
                 ErrorCode.DATA_INTEGRITY_VIOLATION.name(),
@@ -96,12 +111,15 @@ public class ApiExceptionAdvice {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException exception, HttpServletRequest request) {
+        log.warn("Invalid request argument. code={}, method={}, path={}, requestId={}, message={}",
+                ErrorCode.INVALID_REQUEST.name(), request.getMethod(), request.getRequestURI(), requestId(), exception.getMessage());
         return build(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST.name(), exception.getMessage(), request, null);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception exception, HttpServletRequest request) {
-        log.error("Unhandled API exception. requestId={}", requestId(), exception);
+        log.error("Unhandled API exception. method={}, path={}, requestId={}",
+                request.getMethod(), request.getRequestURI(), requestId(), exception);
         return build(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ErrorCode.INTERNAL_SERVER_ERROR.name(),
@@ -119,6 +137,17 @@ public class ApiExceptionAdvice {
             List<FieldErrorResponse> fieldErrors) {
         return ResponseEntity.status(status)
                 .body(ErrorResponse.of(status.value(), code, message, request.getRequestURI(), requestId(), fieldErrors));
+    }
+
+    private void logBusinessException(ErrorCode errorCode, BusinessException exception, HttpServletRequest request) {
+        String message = "Business exception. code={}, method={}, path={}, requestId={}, message={}";
+        if (errorCode.getStatus() >= 500) {
+            log.error(message, errorCode.name(), request.getMethod(), request.getRequestURI(), requestId(), exception.getMessage(), exception);
+        } else if (errorCode.getStatus() == 409) {
+            log.info(message, errorCode.name(), request.getMethod(), request.getRequestURI(), requestId(), exception.getMessage());
+        } else {
+            log.warn(message, errorCode.name(), request.getMethod(), request.getRequestURI(), requestId(), exception.getMessage());
+        }
     }
 
     private String requestId() {
