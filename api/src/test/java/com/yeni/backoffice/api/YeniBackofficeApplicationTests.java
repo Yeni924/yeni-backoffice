@@ -27,8 +27,10 @@ import com.yeni.backoffice.core.payment.repository.PaymentRecoveryTaskRepository
 import com.yeni.backoffice.core.payment.repository.PaymentTransactionRepository;
 import com.yeni.backoffice.core.payment.repository.SalesTransactionRepository;
 import com.yeni.backoffice.core.payment.repository.SettlementStatementRepository;
-import com.yeni.backoffice.core.payment.service.PaymentFollowUpService;
-import com.yeni.backoffice.core.payment.service.PaymentOperationService;
+import com.yeni.backoffice.core.payment.service.PaymentApproveService;
+import com.yeni.backoffice.core.payment.service.PaymentCancelService;
+import com.yeni.backoffice.core.payment.service.PaymentQueryService;
+import com.yeni.backoffice.core.payment.service.PaymentRecoveryService;
 import com.yeni.backoffice.core.payment.service.SalesLedgerService;
 import com.yeni.backoffice.core.payment.service.SettlementOperationService;
 import org.junit.jupiter.api.Test;
@@ -36,7 +38,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -52,7 +53,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
@@ -71,10 +71,16 @@ class YeniBackofficeApplicationTests {
 	private ObjectMapper objectMapper;
 
 	@Autowired
-	private PaymentOperationService paymentOperationService;
+	private PaymentApproveService paymentApproveService;
 
 	@Autowired
-	private PaymentFollowUpService paymentFollowUpService;
+	private PaymentCancelService paymentCancelService;
+
+	@Autowired
+	private PaymentQueryService paymentQueryService;
+
+	@Autowired
+	private PaymentRecoveryService paymentRecoveryService;
 
 	@Autowired
 	private SalesLedgerService salesLedgerService;
@@ -117,25 +123,20 @@ class YeniBackofficeApplicationTests {
 	}
 
 	@Test
-	void anonymousAdminNavigationRedirectsToLogin() throws Exception {
+	void portfolioAdminNavigationPageLoadsWithoutLogin() throws Exception {
 		mockMvc.perform(get("/admin/navigation"))
-				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/admin/login"));
-	}
-
-	@Test
-	void adminLoginAndNavigationPageLoads() throws Exception {
-		MockHttpSession session = loginAdmin();
-
-		mockMvc.perform(get("/admin/navigation").session(session))
 				.andExpect(status().isOk());
 	}
 
 	@Test
-	void adminLoginAndDatabaseSpecPageLoads() throws Exception {
-		MockHttpSession session = loginAdmin();
+	void portfolioAdminApiLoadsWithoutLogin() throws Exception {
+		mockMvc.perform(get("/admin/api/settlements"))
+				.andExpect(status().isOk());
+	}
 
-		mockMvc.perform(get("/admin/database-spec").session(session))
+	@Test
+	void databaseSpecPageLoadsWithoutLogin() throws Exception {
+		mockMvc.perform(get("/admin/database-spec"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("payment_transaction")));
 	}
@@ -242,8 +243,8 @@ class YeniBackofficeApplicationTests {
 		String approveKey = "APPROVE-" + orderNo;
 		PaymentApproveRequest request = approveRequest(orderNo, new BigDecimal("50000"), approveKey);
 
-		PaymentApproveResponse first = paymentOperationService.approvePayment(request);
-		PaymentApproveResponse second = paymentOperationService.approvePayment(request);
+		PaymentApproveResponse first = paymentApproveService.approvePayment(request);
+		PaymentApproveResponse second = paymentApproveService.approvePayment(request);
 
 		assertThat(second.paymentId()).isEqualTo(first.paymentId());
 		assertThat(paymentRepository.findAll().stream().filter(payment -> orderNo.equals(payment.getOrderNo()))).hasSize(1);
@@ -255,7 +256,7 @@ class YeniBackofficeApplicationTests {
 	void approvedPaymentCreatesPostedSaleLedgerWithWonVatBreakdown() {
 		String orderNo = unique("ORDER-SALE-LEDGER");
 
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("12000"), "APPROVE-" + orderNo));
 
 		SalesTransaction sale = salesRepository.findAll().stream()
@@ -275,13 +276,13 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void duplicateCancelRequestReturnsExistingCancelAndCreatesOneCancelSale() {
 		String orderNo = unique("ORDER-CANCEL-IDEMPOTENT");
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
 		String cancelKey = "CANCEL-" + orderNo;
 		PaymentBridgeCancelRequest request = cancelRequest(new BigDecimal("10000"), cancelKey);
 
-		PaymentBridgeCancelResponse first = paymentOperationService.cancelPaymentBridge(approved.paymentId(), request);
-		PaymentBridgeCancelResponse second = paymentOperationService.cancelPaymentBridge(approved.paymentId(), request);
+		PaymentBridgeCancelResponse first = paymentCancelService.cancelPaymentBridge(approved.paymentId(), request);
+		PaymentBridgeCancelResponse second = paymentCancelService.cancelPaymentBridge(approved.paymentId(), request);
 
 		assertThat(second.cancelId()).isEqualTo(first.cancelId());
 		assertThat(cancelRepository.findAll().stream().filter(cancel -> cancelKey.equals(cancel.getCancelRequestKey()))).hasSize(1);
@@ -292,9 +293,9 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void successfulCancelCreatesNegativeCancelLedgerLinkedToOriginalSale() {
 		String orderNo = unique("ORDER-CANCEL-LEDGER");
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("12000"), "APPROVE-" + orderNo));
-		PaymentBridgeCancelResponse canceled = paymentOperationService.cancelPaymentBridge(
+		PaymentBridgeCancelResponse canceled = paymentCancelService.cancelPaymentBridge(
 				approved.paymentId(), cancelRequest(new BigDecimal("3000"), "CANCEL-" + orderNo));
 
 		SalesTransaction sale = salesRepository.findAll().stream()
@@ -317,13 +318,30 @@ class YeniBackofficeApplicationTests {
 	}
 
 	@Test
+	void partialCancelIsIncludedInSettlementSaleAndCancelAmounts() {
+		String orderNo = unique("ORDER-PARTIAL-CANCEL-SETTLEMENT");
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
+				approveRequest(orderNo, new BigDecimal("12000"), "APPROVE-" + orderNo));
+		paymentCancelService.cancelPaymentBridge(
+				approved.paymentId(), cancelRequest(new BigDecimal("3000"), "CANCEL-" + orderNo));
+
+		SettlementStatementResponse statement = settlementOperationService.runDailySettlement(
+				new SettlementBatchRunRequest(LocalDate.now()));
+
+		assertThat(statement.saleAmount()).isGreaterThanOrEqualTo(new BigDecimal("12000"));
+		assertThat(statement.cancelAmount()).isLessThanOrEqualTo(new BigDecimal("-3000"));
+		assertThat(statement.saleAmount().add(statement.cancelAmount()))
+				.isEqualByComparingTo(statement.grossAmount());
+	}
+
+	@Test
 	void cancelAmountCannotExceedRemainingCancelableAmount() {
 		String orderNo = unique("ORDER-OVER-CANCEL");
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
-		paymentOperationService.cancelPaymentBridge(approved.paymentId(), cancelRequest(new BigDecimal("30000"), "CANCEL-1-" + orderNo));
+		paymentCancelService.cancelPaymentBridge(approved.paymentId(), cancelRequest(new BigDecimal("30000"), "CANCEL-1-" + orderNo));
 
-		assertThatThrownBy(() -> paymentOperationService.cancelPaymentBridge(
+		assertThatThrownBy(() -> paymentCancelService.cancelPaymentBridge(
 				approved.paymentId(), cancelRequest(new BigDecimal("25000"), "CANCEL-2-" + orderNo)))
 				.isInstanceOf(BusinessException.class)
 				.hasMessageContaining("취소 가능 금액");
@@ -332,10 +350,10 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void cancelRequestRequiresIdempotencyKey() {
 		String orderNo = unique("ORDER-CANCEL-KEY-REQUIRED");
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
 
-		assertThatThrownBy(() -> paymentOperationService.cancelPaymentBridge(
+		assertThatThrownBy(() -> paymentCancelService.cancelPaymentBridge(
 				approved.paymentId(), new PaymentBridgeCancelRequest(PgProvider.MOCK, new BigDecimal("1000"), "portfolio cancel", null)))
 				.isInstanceOf(BusinessException.class)
 				.hasMessageContaining("취소 중복 방지 키");
@@ -344,14 +362,14 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void partialAndFullCancelUpdatePaymentStatusByRemainingAmount() {
 		String orderNo = unique("ORDER-PARTIAL-FULL");
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
 
-		paymentOperationService.cancelPaymentBridge(approved.paymentId(), cancelRequest(new BigDecimal("10000"), "CANCEL-PART-" + orderNo));
+		paymentCancelService.cancelPaymentBridge(approved.paymentId(), cancelRequest(new BigDecimal("10000"), "CANCEL-PART-" + orderNo));
 		assertThat(paymentRepository.findById(approved.paymentId()).orElseThrow().getPaymentStatus())
 				.isEqualTo(PaymentStatus.PARTIAL_CANCELED);
 
-		paymentOperationService.cancelPaymentBridge(approved.paymentId(), cancelRequest(new BigDecimal("40000"), "CANCEL-FULL-" + orderNo));
+		paymentCancelService.cancelPaymentBridge(approved.paymentId(), cancelRequest(new BigDecimal("40000"), "CANCEL-FULL-" + orderNo));
 		assertThat(paymentRepository.findById(approved.paymentId()).orElseThrow().getPaymentStatus())
 				.isEqualTo(PaymentStatus.CANCELED);
 	}
@@ -359,7 +377,7 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void approveUnknownCreatesRecoveryTask() {
 		String orderNo = unique("ORDER-UNKNOWN");
-		PaymentApproveResponse response = paymentOperationService.approvePayment(
+		PaymentApproveResponse response = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
 
 		assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.APPROVE_UNKNOWN.name());
@@ -375,7 +393,7 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void retryQueryApproveUnknownSuccessCreatesSaleAndFollowUps() {
 		String orderNo = unique("ORDER-UNKNOWN_RECOVERABLE");
-		PaymentApproveResponse response = paymentOperationService.approvePayment(
+		PaymentApproveResponse response = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
 
 		assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.APPROVE_UNKNOWN.name());
@@ -385,7 +403,7 @@ class YeniBackofficeApplicationTests {
 		assertThat(recoveryTaskRepository.findByTaskKey("APPROVE_UNKNOWN-" + orderNo).orElseThrow().getStatus())
 				.isEqualTo(RecoveryStatus.READY);
 
-		paymentOperationService.retryQuery(response.paymentId());
+		paymentQueryService.retryQuery(response.paymentId());
 
 		assertThat(paymentRepository.findById(response.paymentId()).orElseThrow().getPaymentStatus())
 				.isEqualTo(PaymentStatus.APPROVED);
@@ -399,7 +417,7 @@ class YeniBackofficeApplicationTests {
 		assertThat(recoveryTaskRepository.findByTaskKey("APPROVE_UNKNOWN-" + orderNo).orElseThrow().getStatus())
 				.isEqualTo(RecoveryStatus.SUCCESS);
 
-		paymentOperationService.retryQuery(response.paymentId());
+		paymentQueryService.retryQuery(response.paymentId());
 
 		assertThat(salesRepository.findAll().stream()
 				.filter(sales -> orderNo.equals(sales.getOrderNo()) && SaleType.SALE.equals(sales.getSaleType())))
@@ -411,10 +429,10 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void cancelUnknownCreatesRecoveryTaskWithoutCancelSale() {
 		String orderNo = unique("ORDER-CANCEL-UNKNOWN");
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
 
-		PaymentBridgeCancelResponse response = paymentOperationService.cancelPaymentBridge(
+		PaymentBridgeCancelResponse response = paymentCancelService.cancelPaymentBridge(
 				approved.paymentId(), cancelRequest(new BigDecimal("10000"), "CANCEL-UNKNOWN-" + orderNo));
 
 		assertThat(response.cancelId()).isNull();
@@ -431,9 +449,9 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void salesLedgerSearchReturnsPageableResult() {
 		String prefix = unique("ORDER-PAGEABLE");
-		paymentOperationService.approvePayment(approveRequest(prefix + "-1", new BigDecimal("12000"), "APPROVE-" + prefix + "-1"));
-		paymentOperationService.approvePayment(approveRequest(prefix + "-2", new BigDecimal("13000"), "APPROVE-" + prefix + "-2"));
-		paymentOperationService.approvePayment(approveRequest(prefix + "-3", new BigDecimal("14000"), "APPROVE-" + prefix + "-3"));
+		paymentApproveService.approvePayment(approveRequest(prefix + "-1", new BigDecimal("12000"), "APPROVE-" + prefix + "-1"));
+		paymentApproveService.approvePayment(approveRequest(prefix + "-2", new BigDecimal("13000"), "APPROVE-" + prefix + "-2"));
+		paymentApproveService.approvePayment(approveRequest(prefix + "-3", new BigDecimal("14000"), "APPROVE-" + prefix + "-3"));
 
 		SalesLedgerPageResponse page = salesLedgerService.getSalesLedger(
 				null, null, "SALE", null, null, prefix, 0, 2);
@@ -447,9 +465,9 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void salesLedgerSummaryUsesAllFilteredRowsRegardlessOfPageSize() {
 		String orderNo = unique("ORDER-SUMMARY-DB");
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("12000"), "APPROVE-" + orderNo));
-		paymentOperationService.cancelPaymentBridge(
+		paymentCancelService.cancelPaymentBridge(
 				approved.paymentId(), cancelRequest(new BigDecimal("3000"), "CANCEL-" + orderNo));
 
 		SalesLedgerPageResponse page = salesLedgerService.getSalesLedger(
@@ -465,9 +483,9 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void salesLedgerSummaryAppliesSaleTypeKeywordAndSettlementStatusFilters() {
 		String orderNo = unique("ORDER-SUMMARY-FILTER");
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("12000"), "APPROVE-" + orderNo));
-		paymentOperationService.cancelPaymentBridge(
+		paymentCancelService.cancelPaymentBridge(
 				approved.paymentId(), cancelRequest(new BigDecimal("3000"), "CANCEL-" + orderNo));
 
 		SalesLedgerPageResponse saleOnly = salesLedgerService.getSalesLedger(
@@ -495,14 +513,40 @@ class YeniBackofficeApplicationTests {
 	}
 
 	@Test
-	void runningSameSettlementDateAndMidTwiceReturnsConflictAndSingleStatement() {
+	void runningSameDraftSettlementTwiceReturnsExistingSingleStatement() {
 		LocalDate targetDate = uniqueSettlementDate();
 
-		settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate));
+		SettlementStatementResponse first = settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate));
+		SettlementStatementResponse second = settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate));
 
-		assertThatThrownBy(() -> settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate)))
-				.isInstanceOfSatisfying(BusinessException.class, exception ->
-						assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.SETTLEMENT_DUPLICATE_EXECUTION));
+		assertThat(second.id()).isEqualTo(first.id());
+		assertThat(settlementStatementRepository.findAll().stream()
+				.filter(statement -> targetDate.equals(statement.getSettlementDate()))
+				.count()).isEqualTo(1);
+	}
+
+	@Test
+	void rerunningDraftSettlementIncludesNewSalesWithoutCreatingAnotherStatement() {
+		LocalDate targetDate = LocalDate.now();
+		String firstOrderNo = unique("ORDER-SETTLEMENT-FIRST");
+		String secondOrderNo = unique("ORDER-SETTLEMENT-SECOND");
+		paymentApproveService.approvePayment(
+				approveRequest(firstOrderNo, new BigDecimal("12000"), "APPROVE-" + firstOrderNo));
+
+		SettlementStatementResponse first = settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate));
+
+		paymentApproveService.approvePayment(
+				approveRequest(secondOrderNo, new BigDecimal("8000"), "APPROVE-" + secondOrderNo));
+		SettlementStatementResponse recalculated = settlementOperationService.runDailySettlement(new SettlementBatchRunRequest(targetDate));
+		BigDecimal expectedGrossAmount = first.grossAmount().add(new BigDecimal("8000"));
+
+		assertThat(recalculated.id()).isEqualTo(first.id());
+		assertThat(recalculated.grossAmount()).isEqualByComparingTo(expectedGrossAmount);
+		assertThat(settlementStatementRepository.findById(first.id()).orElseThrow().getGrossAmount())
+				.isEqualByComparingTo(expectedGrossAmount);
+		assertThat(salesRepository.findAll().stream()
+				.filter(sale -> firstOrderNo.equals(sale.getOrderNo()) || secondOrderNo.equals(sale.getOrderNo()))
+				.allMatch(SalesTransaction::getSettlementIncludedYn)).isTrue();
 		assertThat(settlementStatementRepository.findAll().stream()
 				.filter(statement -> targetDate.equals(statement.getSettlementDate()))
 				.count()).isEqualTo(1);
@@ -515,7 +559,7 @@ class YeniBackofficeApplicationTests {
 		TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
 
 		assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
-			paymentFollowUpService.createRecoveryTask(
+			paymentRecoveryService.createRecoveryTask(
 					null,
 					null,
 					"ORDER-" + suffix,
@@ -553,7 +597,7 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void salesLedgerLinksReturnFollowUpRowsBySalesId() {
 		String orderNo = unique("ORDER-LINKS");
-		PaymentApproveResponse approved = paymentOperationService.approvePayment(
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
 				approveRequest(orderNo, new BigDecimal("12000"), "APPROVE-" + orderNo));
 		SalesTransaction sale = salesRepository.findAll().stream()
 				.filter(sales -> orderNo.equals(sales.getOrderNo()) && SaleType.SALE.equals(sales.getSaleType()))
@@ -565,16 +609,6 @@ class YeniBackofficeApplicationTests {
 		assertThat(links.payment().id()).isEqualTo(approved.paymentId());
 		assertThat(links.externalSends()).hasSize(1);
 		assertThat(links.alimtalkQueues()).hasSize(1);
-	}
-
-	private MockHttpSession loginAdmin() throws Exception {
-		MvcResult loginResult = mockMvc.perform(post("/api/admin/auth/login")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("{\"loginId\":\"test\",\"password\":\"1234\"}"))
-				.andExpect(status().isOk())
-				.andReturn();
-
-		return (MockHttpSession) loginResult.getRequest().getSession(false);
 	}
 
 	private PaymentApproveRequest approveRequest(String orderNo, BigDecimal amount, String idempotencyKey) {

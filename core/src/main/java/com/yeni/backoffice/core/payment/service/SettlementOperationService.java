@@ -60,7 +60,7 @@ public class SettlementOperationService {
 
     public SettlementStatementResponse runDailySettlement(SettlementBatchRunRequest request) {
         LocalDate targetDate = request == null || request.targetDate() == null
-                ? LocalDate.now().minusDays(1)
+                ? LocalDate.now()
                 : request.targetDate();
         String mid = inicisProperties.getMid();
         String lockKey = targetDate + ":" + mid;
@@ -71,10 +71,13 @@ public class SettlementOperationService {
         }
 
         try {
-            if (settlementStatementRepository.findBySettlementDateAndMid(targetDate, mid).isPresent()) {
+            SettlementStatement existingStatement = settlementStatementRepository
+                    .findBySettlementDateAndMid(targetDate, mid)
+                    .orElse(null);
+            if (existingStatement != null && !SettlementStatus.DRAFT.equals(existingStatement.getSettlementStatus())) {
                 throw duplicateExecution(targetDate, mid);
             }
-            return settlementBatchProcessor.process(targetDate, mid);
+            return settlementBatchProcessor.process(targetDate, mid, existingStatement);
         } catch (DataIntegrityViolationException duplicate) {
             throw duplicateExecution(targetDate, mid);
         } finally {
@@ -88,7 +91,7 @@ public class SettlementOperationService {
         LocalDate start = startDate == null ? LocalDate.now().minusDays(30) : startDate;
         LocalDate end = endDate == null ? LocalDate.now() : endDate;
         return settlementStatementRepository.findBySettlementDateBetweenOrderBySettlementDateDesc(start, end).stream()
-                .map(SettlementStatementResponse::from)
+                .map(this::statementResponse)
                 .toList();
     }
 
@@ -102,7 +105,7 @@ public class SettlementOperationService {
         List<SettlementFeeDetailResponse> feeDetails = settlementFeeDetailRepository.findBySettlementStatementIdOrderByIdAsc(statementId).stream()
                 .map(SettlementFeeDetailResponse::from)
                 .toList();
-        return new SettlementDetailPageResponse(SettlementStatementResponse.from(statement), details, feeDetails);
+        return new SettlementDetailPageResponse(statementResponse(statement), details, feeDetails);
     }
 
     @Transactional
@@ -116,7 +119,7 @@ public class SettlementOperationService {
                 .forEach(detail -> salesRepository.findById(detail.getSalesId()).ifPresent(SalesTransaction::markSettled));
         statement.confirm();
         saveSettlementLog(statementId, "CONFIRM", "SUCCESS", "정산 확정 완료");
-        return SettlementStatementResponse.from(statement);
+        return statementResponse(statement);
     }
 
     @Transactional
@@ -130,7 +133,14 @@ public class SettlementOperationService {
                 .forEach(detail -> salesRepository.findById(detail.getSalesId()).ifPresent(SalesTransaction::markPaid));
         statement.markPaid();
         saveSettlementLog(statementId, "PAY", "SUCCESS", "정산 지급 처리 완료");
-        return SettlementStatementResponse.from(statement);
+        return statementResponse(statement);
+    }
+
+    private SettlementStatementResponse statementResponse(SettlementStatement statement) {
+        return SettlementStatementResponse.from(
+                statement,
+                settlementDetailRepository.findBySettlementStatementIdOrderByIdAsc(statement.getId())
+        );
     }
 
     private ConflictException duplicateExecution(LocalDate targetDate, String mid) {

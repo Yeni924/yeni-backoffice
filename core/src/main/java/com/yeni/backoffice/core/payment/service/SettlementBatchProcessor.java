@@ -1,6 +1,7 @@
 package com.yeni.backoffice.core.payment.service;
 
 import com.yeni.backoffice.core.payment.config.InicisStdPayProperties;
+import com.yeni.backoffice.core.payment.support.PaymentDefaults;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SettlementStatementResponse;
 import com.yeni.backoffice.core.payment.entity.PgFeePolicy;
 import com.yeni.backoffice.core.payment.entity.SalesTransaction;
@@ -60,8 +61,12 @@ public class SettlementBatchProcessor {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public SettlementStatementResponse process(LocalDate targetDate, String mid) {
+    public SettlementStatementResponse process(LocalDate targetDate, String mid, SettlementStatement existingStatement) {
         List<SalesTransaction> sales = salesRepository.findByBusinessDateAndSettlementIncludedYnFalseOrderByIdAsc(targetDate);
+        if (existingStatement != null && sales.isEmpty()) {
+            return statementResponse(existingStatement);
+        }
+
         SettlementBatchLog batchLog = batchLogRepository.save(SettlementBatchLog.builder()
                 .targetDate(targetDate)
                 .batchStatus(BatchStatus.RUNNING)
@@ -72,23 +77,32 @@ public class SettlementBatchProcessor {
                 .build());
 
         PgFeePolicy feePolicy = findFeePolicy(targetDate);
-        BigDecimal grossAmount = sales.stream()
+        BigDecimal pendingGrossAmount = sales.stream()
                 .map(SalesTransaction::getSaleAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal grossAmount = existingStatement == null
+                ? pendingGrossAmount
+                : existingStatement.getGrossAmount().add(pendingGrossAmount);
         BigDecimal feeAmount = calculateFee(grossAmount.abs(), feePolicy.getFeeRate());
         BigDecimal vatAmount = feeAmount.divide(BigDecimal.TEN, 2, RoundingMode.HALF_UP);
         BigDecimal netAmount = grossAmount.subtract(feeAmount).subtract(vatAmount);
 
-        SettlementStatement statement = settlementStatementRepository.saveAndFlush(SettlementStatement.builder()
-                .settlementDate(targetDate)
-                .pgCompany("INICIS")
-                .mid(mid)
-                .grossAmount(grossAmount)
-                .feeAmount(feeAmount)
-                .vatAmount(vatAmount)
-                .netAmount(netAmount)
-                .settlementStatus(SettlementStatus.DRAFT)
-                .build());
+        SettlementStatement statement;
+        if (existingStatement == null) {
+            statement = settlementStatementRepository.saveAndFlush(SettlementStatement.builder()
+                    .settlementDate(targetDate)
+                    .pgCompany("INICIS")
+                    .mid(mid)
+                    .grossAmount(grossAmount)
+                    .feeAmount(feeAmount)
+                    .vatAmount(vatAmount)
+                    .netAmount(netAmount)
+                    .settlementStatus(SettlementStatus.DRAFT)
+                    .build());
+        } else {
+            existingStatement.recalculate(grossAmount, feeAmount, vatAmount, netAmount);
+            statement = settlementStatementRepository.saveAndFlush(existingStatement);
+        }
 
         for (SalesTransaction sale : sales) {
             BigDecimal saleFee = calculateFee(sale.getSaleAmount().abs(), feePolicy.getFeeRate());
@@ -103,13 +117,19 @@ public class SettlementBatchProcessor {
             sale.markIncludedInSettlement();
         }
 
-        settlementFeeDetailRepository.save(SettlementFeeDetail.builder()
-                .settlementStatementId(statement.getId())
-                .feePolicyId(feePolicy.getId())
-                .feeRate(feePolicy.getFeeRate())
-                .feeAmount(feeAmount)
-                .vatAmount(vatAmount)
-                .build());
+        List<SettlementFeeDetail> existingFeeDetails =
+                settlementFeeDetailRepository.findBySettlementStatementIdOrderByIdAsc(statement.getId());
+        if (existingFeeDetails.isEmpty()) {
+            settlementFeeDetailRepository.save(SettlementFeeDetail.builder()
+                    .settlementStatementId(statement.getId())
+                    .feePolicyId(feePolicy.getId())
+                    .feeRate(feePolicy.getFeeRate())
+                    .feeAmount(feeAmount)
+                    .vatAmount(vatAmount)
+                    .build());
+        } else {
+            existingFeeDetails.get(0).recalculate(feeAmount, vatAmount);
+        }
 
         batchLog.complete(sales.size(), 0);
         settlementLogRepository.save(SettlementLog.builder()
@@ -119,7 +139,14 @@ public class SettlementBatchProcessor {
                 .message("정산 초안 생성 완료")
                 .loggedAt(LocalDateTime.now())
                 .build());
-        return SettlementStatementResponse.from(statement);
+        return statementResponse(statement);
+    }
+
+    private SettlementStatementResponse statementResponse(SettlementStatement statement) {
+        return SettlementStatementResponse.from(
+                statement,
+                settlementDetailRepository.findBySettlementStatementIdOrderByIdAsc(statement.getId())
+        );
     }
 
     private PgFeePolicy findFeePolicy(LocalDate targetDate) {
@@ -127,14 +154,14 @@ public class SettlementBatchProcessor {
                 .findFirstByPgCompanyAndMidAndPaymentMethodAndUseYnTrueAndEffectiveStartDateLessThanEqualAndEffectiveEndDateGreaterThanEqual(
                         "INICIS",
                         inicisProperties.getMid(),
-                        PaymentOperationService.paymentMethod(),
+                        PaymentDefaults.PAYMENT_METHOD_CARD,
                         targetDate,
                         targetDate
                 )
                 .orElseGet(() -> feePolicyRepository.save(PgFeePolicy.builder()
                         .pgCompany("INICIS")
                         .mid(inicisProperties.getMid())
-                        .paymentMethod(PaymentOperationService.paymentMethod())
+                        .paymentMethod(PaymentDefaults.PAYMENT_METHOD_CARD)
                         .feeRate(new BigDecimal("0.0250"))
                         .effectiveStartDate(LocalDate.of(2020, 1, 1))
                         .effectiveEndDate(LocalDate.of(2099, 12, 31))

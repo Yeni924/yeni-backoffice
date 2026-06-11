@@ -66,4 +66,15 @@ public class SettlementStatement extends BaseTimeEntity {
     public void markPaid() {
         this.settlementStatus = SettlementStatus.PAID;
     }
+
+    public void recalculate(
+            BigDecimal grossAmount,
+            BigDecimal feeAmount,
+            BigDecimal vatAmount,
+            BigDecimal netAmount) {
+        this.grossAmount = grossAmount;
+        this.feeAmount = feeAmount;
+        this.vatAmount = vatAmount;
+        this.netAmount = netAmount;
+    }
 }

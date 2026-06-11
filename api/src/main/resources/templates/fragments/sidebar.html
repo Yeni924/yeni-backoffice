@@ -28,12 +28,6 @@
     </nav>
 
     <div class="sidebar-footer">
-        <div th:if="${isLoggedIn}">
-            <strong th:text="${loginAdmin.adminName}">관리자</strong>
-            <button type="button" class="sidebar-link-button" id="adminLogoutBtn">로그아웃</button>
-        </div>
-        <div th:unless="${isLoggedIn}">
-            <a class="sidebar-login-link" th:href="@{/admin/login}">관리자 로그인</a>
-        </div>
+        <strong>포트폴리오 데모</strong>
     </div>
 </aside>

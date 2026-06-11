@@ -7,6 +7,7 @@ import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgFeePolicyRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgFeePolicyResponse;
 import com.yeni.backoffice.core.payment.entity.PgFeePolicy;
 import com.yeni.backoffice.core.payment.repository.PgFeePolicyRepository;
+import com.yeni.backoffice.core.payment.support.PaymentDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -29,7 +30,7 @@ public class PgFeePolicyService {
         return feePolicyRepository.findByPgCompanyAndMidAndPaymentMethodAndUseYnTrueOrderByEffectiveStartDateAsc(
                         defaultText(pgCompany, "INICIS"),
                         defaultText(mid, "INIpayTest"),
-                        defaultText(paymentMethod, PaymentOperationService.paymentMethod())
+                        defaultText(paymentMethod, PaymentDefaults.PAYMENT_METHOD_CARD)
                 ).stream()
                 .map(PgFeePolicyResponse::from)
                 .collect(Collectors.toList());
