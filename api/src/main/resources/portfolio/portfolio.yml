@@ -3,7 +3,7 @@ projects:
     key: ddangyo-admin
     period: 2025.09 ~ 2025.11
     company: KG이니시스
-    title: 땅교 전용 영업관리 시스템 관리자 페이지 및 POS 연동 데이터 기준 정의
+    title: 땡겨요 전용 영업관리 시스템 관리자 페이지 개발
     desc: React + TypeScript 기반 관리자 화면을 개발하고 POS 연동에 필요한 상품, 매장, 옵션 운영 데이터 기준을 정리한 프로젝트
     role: 관리자 화면 개발 / API 연동 / POS 담당자 협업
     domain: 영업관리 / 관리자 시스템 / 상품·매장 운영 / POS 연동
