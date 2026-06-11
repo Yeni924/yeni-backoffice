@@ -5,7 +5,7 @@ Spring Boot 기반 결제 운영 백오피스 포트폴리오입니다.
 이 프로젝트는 실제 PG 운영망에 직접 붙지 않고 Mock PG Adapter를 사용합니다. 다만 내부 비즈니스 로직은 실제 결제 운영에서 발생할 수 있는 중복 요청, 부분취소, 결과불명, 망취소, 매출 원장, 외부전송, 알림톡, 정산 흐름을 고려해 구성했습니다.
 
 ## Demo
-[권예은_커머스백오피스_.pdf](https://github.com/user-attachments/files/28837173/_권예은_포트폴리오.pdf)
+[권예은_커머스백오피스_.pptx.pdf](https://github.com/user-attachments/files/28837173/_._.pptx.pdf)
 - Demo: https://yeni-demo.fly.dev/
 - PG 운영: https://yeni-demo.fly.dev/admin/payment-operations
 - 매출 원장: https://yeni-demo.fly.dev/admin/sales-ledger
