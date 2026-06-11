@@ -48,9 +48,11 @@ class SettlementOperationServiceTest {
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
-                "DRAFT"
+                "DRAFT",
+                BigDecimal.ZERO,
+                BigDecimal.ZERO
         );
-        when(processor.process(LocalDate.of(2026, 6, 9), "MID-TEST")).thenAnswer(invocation -> {
+        when(processor.process(LocalDate.of(2026, 6, 9), "MID-TEST", null)).thenAnswer(invocation -> {
             processorStarted.countDown();
             releaseProcessor.await(5, TimeUnit.SECONDS);
             return response;

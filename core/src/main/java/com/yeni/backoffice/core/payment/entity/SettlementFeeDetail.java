@@ -40,4 +40,9 @@ public class SettlementFeeDetail extends BaseTimeEntity {
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal vatAmount;
+
+    public void recalculate(BigDecimal feeAmount, BigDecimal vatAmount) {
+        this.feeAmount = feeAmount;
+        this.vatAmount = vatAmount;
+    }
 }

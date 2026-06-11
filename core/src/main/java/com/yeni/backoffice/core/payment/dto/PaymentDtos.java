@@ -458,9 +458,25 @@ public final class PaymentDtos {
             BigDecimal feeAmount,
             BigDecimal vatAmount,
             BigDecimal netAmount,
-            String settlementStatus
+            String settlementStatus,
+            BigDecimal saleAmount,
+            BigDecimal cancelAmount
     ) {
         public static SettlementStatementResponse from(SettlementStatement statement) {
+            return from(statement, List.of());
+        }
+
+        public static SettlementStatementResponse from(
+                SettlementStatement statement,
+                List<SettlementDetail> details) {
+            BigDecimal saleAmount = details.stream()
+                    .filter(detail -> "SALE".equals(detail.getSaleType()))
+                    .map(SettlementDetail::getSaleAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal cancelAmount = details.stream()
+                    .filter(detail -> "CANCEL".equals(detail.getSaleType()))
+                    .map(SettlementDetail::getSaleAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
             return new SettlementStatementResponse(
                     statement.getId(),
                     statement.getSettlementDate(),
@@ -470,7 +486,9 @@ public final class PaymentDtos {
                     statement.getFeeAmount(),
                     statement.getVatAmount(),
                     statement.getNetAmount(),
-                    statement.getSettlementStatus().name()
+                    statement.getSettlementStatus().name(),
+                    saleAmount,
+                    cancelAmount
             );
         }
     }

@@ -18,9 +18,7 @@
 
             <div class="nav-group-items">
                 <a th:each="item : ${group.items}"
-                   th:href="@{${item.itemUrl}}"
-                   th:classappend="${item.active} ? 'active' : ''">
-                    <span class="nav-icon" th:text="${item.icon ?: ''}">메뉴</span>
+                   th:href="@{${item.itemUrl}}">
                     <span th:text="${item.itemName}">개요</span>
                 </a>
             </div>
@@ -28,12 +26,18 @@
     </nav>
 
     <div class="sidebar-footer">
-        <div th:if="${isLoggedIn}">
-            <strong th:text="${loginAdmin.adminName}">관리자</strong>
-            <button type="button" class="sidebar-link-button" id="adminLogoutBtn">로그아웃</button>
-        </div>
-        <div th:unless="${isLoggedIn}">
-            <a class="sidebar-login-link" th:href="@{/admin/login}">관리자 로그인</a>
-        </div>
+        <strong>포트폴리오 데모</strong>
     </div>
 </aside>
+<script>
+(function () {
+    var path = window.location.pathname;
+    document.querySelectorAll(".nav a").forEach(function (link) {
+        link.classList.remove("active");
+        var href = link.getAttribute("href");
+        if (href && path === href) {
+            link.classList.add("active");
+        }
+    });
+})();
+</script>

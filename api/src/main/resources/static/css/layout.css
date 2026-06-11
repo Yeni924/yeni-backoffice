@@ -53,7 +53,7 @@
 }
 
 .nav-group {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .nav-group-toggle {
@@ -63,13 +63,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 12px 8px;
+    padding: 10px 12px 6px;
     cursor: pointer;
 }
 
 .nav-group-items {
     display: grid;
-    gap: 4px;
+    gap: 2px;
+    padding: 0 6px 4px;
 }
 
 .nav-group.is-collapsed .nav-group-items {
@@ -81,31 +82,37 @@
 }
 
 .nav-arrow {
-    color: #9ca3af;
+    color: #6b7280;
+    font-size: 11px;
+    transition: transform 0.18s ease;
+}
+
+.nav-icon {
+    display: none;
 }
 
 .nav a {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    margin-bottom: 4px;
-    border-radius: 11px;
-    color: #d1d5db;
-    font-size: 14px;
-    font-weight: 600;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    color: #9ca3af;
+    font-size: 13.5px;
+    font-weight: 500;
+    word-break: keep-all;
+    transition: background 0.14s ease, color 0.14s ease;
 }
 
-.nav-icon {
-    min-width: 22px;
-    font-size: 12px;
-    font-weight: 850;
+.nav a:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: #e5e7eb;
 }
 
-.nav a:hover,
 .nav a.active {
     background: #2563eb;
     color: #fff;
+    font-weight: 700;
 }
 
 .sidebar-footer {
@@ -209,10 +216,12 @@
     .sidebar {
         transform: translateX(-100%);
         transition: 0.25s ease;
+        width: 240px;
     }
 
     .sidebar.open {
         transform: translateX(0);
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
     }
 
     .main {
@@ -235,11 +244,13 @@
     }
 
     .content {
-        padding: 18px;
+        padding: 14px;
     }
 
     .page-title h1 {
-        font-size: 17px;
+        font-size: 16px;
+        word-break: keep-all;
+        overflow-wrap: break-word;
     }
 
     .page-title p {
@@ -247,7 +258,8 @@
     }
 
     .intro-card h2 {
-        font-size: 23px;
+        font-size: 20px;
+        word-break: keep-all;
     }
 
     .stats-grid,
