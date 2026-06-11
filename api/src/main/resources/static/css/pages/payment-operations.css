@@ -74,14 +74,23 @@
 
 .demo-notice,
 .empty-guide {
-    padding: 14px 16px;
-    border: 1px solid #bfdbfe;
+    padding: 13px 16px 13px 44px;
+    border: 1px solid #fde68a;
     border-radius: 12px;
-    background: #eff6ff;
-    color: #1e3a8a;
+    background: #fffbeb;
+    color: #78350f;
     font-size: 13px;
-    font-weight: 750;
+    font-weight: 700;
     line-height: 1.6;
+    position: relative;
+}
+.demo-notice::before {
+    content: "⚠";
+    position: absolute;
+    left: 15px;
+    top: 13px;
+    color: #d97706;
+    font-size: 14px;
 }
 
 .operator-note h3 {
@@ -569,6 +578,31 @@
 
 .sales-summary-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.metric-grid .metric-highlight {
+    grid-column: 1 / -1;
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+.metric-grid .metric-highlight span {
+    color: #166534;
+    font-weight: 800;
+}
+
+.metric-grid .metric-highlight strong {
+    color: #15803d;
+    font-size: 24px;
+}
+
+.filter-section-label {
+    padding: 14px 20px 6px;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
 }
 
 .quick-filter-row {

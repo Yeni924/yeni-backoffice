@@ -694,12 +694,25 @@ function bindEvents() {
     });
 }
 
+function setupAccordion() {
+    Array.prototype.forEach.call(document.querySelectorAll('.acc-header'), function(btn) {
+        btn.addEventListener('click', function() {
+            var item = btn.closest('.acc-item');
+            if (!item) { return; }
+            var isOpen = item.classList.contains('open');
+            item.classList.toggle('open', !isOpen);
+            btn.setAttribute('aria-expanded', String(!isOpen));
+        });
+    });
+}
+
 setupSidebarTooltips();
 restoreSidebarState();
 showDashboardLoading("프로젝트 목록을 준비하고 있어요");
 initProjectTable();
 animateCounters();
 setupScrollSpy();
+setupAccordion();
 bindEvents();
 
 if (projectTable) {
