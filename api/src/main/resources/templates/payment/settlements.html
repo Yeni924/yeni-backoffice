@@ -82,7 +82,11 @@
                 <span class="badge">정산 상세</span>
                 <h3 id="settlementDetailTitle">정산 명세 상세</h3>
             </div>
-            <button class="btn btn-light" id="closeSettlementDetailBtn" type="button">닫기</button>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn btn-primary" id="confirmStatementBtn" type="button" hidden>정산 확정</button>
+                <button class="btn btn-primary" id="payStatementBtn" type="button" hidden>지급 처리</button>
+                <button class="btn btn-light" id="closeSettlementDetailBtn" type="button">닫기</button>
+            </div>
         </div>
         <div id="settlementDetailBody" class="detail-grid"></div>
     </section>

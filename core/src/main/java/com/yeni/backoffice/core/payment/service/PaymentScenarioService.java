@@ -36,7 +36,8 @@ public class PaymentScenarioService {
     private static final BigDecimal DEFAULT_AMOUNT = BigDecimal.valueOf(12_000);
     private static final BigDecimal PARTIAL_CANCEL_AMOUNT = BigDecimal.valueOf(3_000);
 
-    private final PaymentOperationService paymentOperationService;
+    private final PaymentApproveService paymentApproveService;
+    private final PaymentCancelService paymentCancelService;
     private final ExternalSendService externalSendService;
     private final PaymentTransactionRepository paymentRepository;
     private final SalesTransactionRepository salesRepository;
@@ -45,14 +46,16 @@ public class PaymentScenarioService {
     private final PaymentRecoveryTaskRepository recoveryTaskRepository;
 
     public PaymentScenarioService(
-            PaymentOperationService paymentOperationService,
+            PaymentApproveService paymentApproveService,
+            PaymentCancelService paymentCancelService,
             ExternalSendService externalSendService,
             PaymentTransactionRepository paymentRepository,
             SalesTransactionRepository salesRepository,
             ExternalSendRequestRepository externalSendRequestRepository,
             AlimtalkQueueRepository alimtalkQueueRepository,
             PaymentRecoveryTaskRepository recoveryTaskRepository) {
-        this.paymentOperationService = paymentOperationService;
+        this.paymentApproveService = paymentApproveService;
+        this.paymentCancelService = paymentCancelService;
         this.externalSendService = externalSendService;
         this.paymentRepository = paymentRepository;
         this.salesRepository = salesRepository;
@@ -92,7 +95,7 @@ public class PaymentScenarioService {
     private ScenarioRunResponse partialCancel() {
         List<ScenarioTimelineStep> steps = new ArrayList<>();
         PaymentApproveResponse approved = approve(newOrderNo("부분취소"));
-        PaymentBridgeCancelResponse canceled = paymentOperationService.cancelPaymentBridge(approved.paymentId(),
+        PaymentBridgeCancelResponse canceled = paymentCancelService.cancelPaymentBridge(approved.paymentId(),
                 cancelRequest(PARTIAL_CANCEL_AMOUNT, "취소-" + approved.orderNo()));
         add(steps, "취소 가능 금액 검증", "SUCCESS", "누적 취소 금액과 요청 금액이 승인 금액을 넘지 않는지 확인했습니다.", PARTIAL_CANCEL_AMOUNT);
         add(steps, "모의 PG 부분취소 성공", "SUCCESS", "모의 PG가 취소 성공 응답을 반환했습니다.", canceled.cancelId());
@@ -106,8 +109,8 @@ public class PaymentScenarioService {
         List<ScenarioTimelineStep> steps = new ArrayList<>();
         String orderNo = newOrderNo("중복승인");
         PaymentApproveRequest request = approveRequest(orderNo);
-        PaymentApproveResponse first = paymentOperationService.approvePayment(request);
-        PaymentApproveResponse second = paymentOperationService.approvePayment(request);
+        PaymentApproveResponse first = paymentApproveService.approvePayment(request);
+        PaymentApproveResponse second = paymentApproveService.approvePayment(request);
         add(steps, "첫 번째 승인 저장", "SUCCESS", "첫 요청에서 결제 거래와 매출 원장을 생성했습니다.", first.paymentId());
         add(steps, "중복 요청 감지", "SUCCESS", "같은 중복방지키로 들어온 두 번째 요청은 기존 승인 결과를 반환했습니다.", second.paymentId());
         add(steps, "중복 생성 방지", "SUCCESS", "결제, 매출, 외부전송, 알림톡 데이터가 중복 생성되지 않았습니다.", orderNo);
@@ -118,7 +121,7 @@ public class PaymentScenarioService {
         List<ScenarioTimelineStep> steps = new ArrayList<>();
         PaymentApproveResponse approved = approve(newOrderNo("초과취소"));
         try {
-            paymentOperationService.cancelPaymentBridge(approved.paymentId(),
+            paymentCancelService.cancelPaymentBridge(approved.paymentId(),
                     cancelRequest(DEFAULT_AMOUNT.add(BigDecimal.ONE), "취소초과-" + approved.orderNo()));
         } catch (IllegalArgumentException e) {
             add(steps, "취소 가능 금액 검증", "FAILED", "요청 취소 금액이 남은 취소 가능 금액보다 커서 거절했습니다.", e.getMessage());
@@ -141,7 +144,7 @@ public class PaymentScenarioService {
     private ScenarioRunResponse cancelTimeout() {
         List<ScenarioTimelineStep> steps = new ArrayList<>();
         PaymentApproveResponse approved = approve(newOrderNo("취소결과불명"));
-        PaymentBridgeCancelResponse canceled = paymentOperationService.cancelPaymentBridge(approved.paymentId(),
+        PaymentBridgeCancelResponse canceled = paymentCancelService.cancelPaymentBridge(approved.paymentId(),
                 cancelRequest(PARTIAL_CANCEL_AMOUNT, "취소결과확인-" + approved.orderNo()));
         add(steps, "PG 취소 응답 지연", "UNKNOWN", "모의 PG가 취소 결과불명 응답을 반환했습니다.", canceled.resultCode());
         add(steps, "취소 결과불명 저장", "READY", "취소 실패로 단정하지 않고 취소 결과불명 상태로 저장했습니다.", approved.paymentId());
@@ -203,7 +206,7 @@ public class PaymentScenarioService {
     }
 
     private PaymentApproveResponse approve(String orderNo) {
-        return paymentOperationService.approvePayment(approveRequest(orderNo));
+        return paymentApproveService.approvePayment(approveRequest(orderNo));
     }
 
     private PaymentApproveRequest approveRequest(String orderNo) {

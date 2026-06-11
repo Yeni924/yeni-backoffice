@@ -23,9 +23,11 @@ public class DatabaseSpecService {
     private static final String DEFAULT_SCHEMA = "PUBLIC";
 
     private final DataSource dataSource;
+    private final DatabaseSpecDescriptionCatalog descriptionCatalog;
 
-    public DatabaseSpecService(DataSource dataSource) {
+    public DatabaseSpecService(DataSource dataSource, DatabaseSpecDescriptionCatalog descriptionCatalog) {
         this.dataSource = dataSource;
+        this.descriptionCatalog = descriptionCatalog;
     }
 
     public List<TableSpec> getTableSpecs() {
@@ -50,7 +52,7 @@ public class DatabaseSpecService {
                 String remarks = firstText(rs.getString("REMARKS"), getTableRemarksFallback(connection, schema, tableName));
                 tables.add(new TableSpec(
                         normalizeName(tableName),
-                        defaultTableDescription(remarks),
+                        descriptionCatalog.tableDescription(tableName).orElseGet(() -> defaultTableDescription(remarks)),
                         getColumns(connection, tableName)
                 ));
             }
@@ -83,7 +85,8 @@ public class DatabaseSpecService {
                         nullable,
                         defaultValue,
                         primaryKey,
-                        defaultColumnDescription(remarks, primaryKey, nullable, defaultValue),
+                        descriptionCatalog.columnDescription(tableName, columnName)
+                                .orElseGet(() -> defaultColumnDescription(remarks, primaryKey, nullable, defaultValue)),
                         rs.getInt("ORDINAL_POSITION")
                 ));
             }

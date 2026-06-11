@@ -2,224 +2,287 @@
 
 Spring Boot 기반 결제 운영 백오피스 포트폴리오입니다.
 
-이 프로젝트는 실제 PG 운영망에 직접 붙지 않고 Mock PG Adapter를 사용합니다. 다만 내부 비즈니스 로직은 실제 결제 운영에서 발생할 수 있는 중복 요청, 부분취소, 결과불명, 망취소, 매출 원장, 외부전송, 알림톡, 정산 흐름을 고려해 구성했습니다.
+실제 PG 운영망에 직접 붙지 않고 Mock PG Gateway를 사용하지만, 내부 비즈니스 로직은 실제 결제 운영에서 발생하는 중복 요청 방어, 부분취소, 결과불명, 망취소, 매출 원장, 외부전송, 알림톡, 정산 흐름을 고려해 구성했습니다.
 
 ## Demo
 
-- Demo: https://yeni-demo.fly.dev/
+- 대시보드: https://yeni-demo.fly.dev/
 - PG 운영: https://yeni-demo.fly.dev/admin/payment-operations
 - 매출 원장: https://yeni-demo.fly.dev/admin/sales-ledger
 - 정산 관리: https://yeni-demo.fly.dev/admin/settlements
 - DB 명세: https://yeni-demo.fly.dev/admin/database-spec
 - Swagger: https://yeni-demo.fly.dev/swagger-ui/index.html
 
-Fly.io 데모 환경은 H2 in-memory DB를 사용합니다. 배포 또는 Machine 재시작 시 데이터가 초기화될 수 있으며, 데이터가 비어 있으면 PG 운영 화면의 시나리오 버튼으로 다시 생성할 수 있습니다.
+> Fly.io 데모는 H2 in-memory DB를 사용합니다. Machine 재시작 시 데이터가 초기화되며, 비어 있으면 PG 운영 화면의 시나리오 버튼으로 다시 생성할 수 있습니다.
 
 ## 프로젝트 목표
 
-단순 결제 CRUD가 아니라, 결제 승인 이후 운영 백오피스에서 이어지는 흐름을 하나의 서비스로 확인할 수 있도록 만드는 것이 목표입니다.
-
-주요 흐름은 다음과 같습니다.
+단순 결제 CRUD가 아니라, 결제 승인 이후 운영 백오피스에서 이어지는 흐름 전체를 하나의 서비스로 확인할 수 있도록 만드는 것이 목표입니다.
 
 1. Mock PG 승인 요청
 2. 결제 내역 저장
 3. SALE 매출 원장 생성
-4. 외부전송 대기함 생성
-5. 알림톡 Queue 생성
-6. 부분취소 또는 전체취소 요청
+4. 외부전송 대기함 등록
+5. 알림톡 Queue 등록
+6. 부분취소 또는 전체취소
 7. CANCEL 음수 매출 원장 생성
-8. 결과불명 발생 시 RecoveryTask 생성
-9. 매출 원장 기준 정산 명세 생성
+8. 결과불명 발생 시 RecoveryTask 생성 및 재조회
+9. 매출 원장 기준 정산 명세 생성, 확정, 지급 처리
 
-## 핵심 시나리오
+## 결제 프로세스
 
-### 정상 승인
+### 승인 흐름
 
-PG 승인 성공 후 `payment_transaction`에 결제 내역을 저장하고, 확정된 승인 거래만 `sales_transaction`에 SALE 결제매출로 기록합니다. 이후 외부전송 대기함과 알림톡 Queue를 생성해 결제 이후 후속 처리 흐름을 확인할 수 있습니다.
+```
+요청 진입
+  ├─ 중복 방지 키 / orderNo 기존 결제 존재? → 기존 결과 반환 (IDEMPOTENT_REPLAY)
+  │
+  ├─ GatewayRouter → PgProvider 결정
+  ├─ PgApiLog 저장 (REQUESTED)
+  ├─ PG 승인 요청
+  │
+  ├─ 결과불명 (unknown)
+  │    ├─ PaymentTransaction 저장 (APPROVE_UNKNOWN)
+  │    └─ RecoveryTask 생성 (APPROVE_UNKNOWN_CHECK)
+  │
+  ├─ 승인 실패 → BusinessException
+  │
+  └─ 승인 성공
+       ├─ PaymentTransaction 저장 (APPROVED)
+       ├─ SalesTransaction 생성 (SALE, 양수)
+       ├─ ExternalSendRequest 등록
+       ├─ AlimtalkQueue 등록
+       │
+       └─ 내부 처리 실패 시 (망취소 경로)
+            ├─ PaymentStatus → NETWORK_CANCEL_REQUIRED
+            └─ RecoveryTask 생성 (NETWORK_CANCEL)
+```
 
-### 부분취소
+### 취소 흐름
 
-부분취소 요청 시 기존 결제의 취소 가능 금액을 검증합니다. 취소가 확정되면 `payment_cancel`을 생성하고, 원 SALE 거래를 수정하지 않고 `sales_transaction`에 CANCEL 취소매출을 음수 거래로 남깁니다.
+```
+요청 진입 (paymentId + cancelAmount + idempotencyKey)
+  ├─ findByIdForUpdate (비관적 락 — 동시 취소 방지)
+  ├─ 중복 방지 키 기존 취소 존재? → 기존 결과 반환
+  ├─ CANCEL_UNKNOWN 복구 태스크 존재? → 기존 결과 반환
+  ├─ isCancelCompleted() → ConflictException
+  ├─ cancelAmount > getCancelableAmount() → ValidationException
+  │
+  ├─ PG 취소 요청
+  │
+  ├─ 결과불명
+  │    ├─ PaymentStatus → CANCEL_UNKNOWN
+  │    └─ RecoveryTask 생성 (CANCEL_UNKNOWN_CHECK)
+  │
+  ├─ 취소 실패
+  │    ├─ PaymentStatus → CANCEL_FAILED
+  │    └─ BusinessException
+  │
+  └─ 취소 성공
+       ├─ cancelAmount == getCancelableAmount()? → FULL : PARTIAL
+       ├─ payment.cancel(amount) — canceledAmount 누적, paymentStatus 갱신
+       ├─ PaymentCancel 저장
+       ├─ SalesTransaction 생성 (CANCEL, 음수)
+       ├─ ExternalSendRequest 등록
+       └─ AlimtalkQueue 등록
+```
 
-### 중복 요청 방어
+### PaymentStatus 상태 전이
 
-승인 요청과 취소 요청은 request key와 DB unique constraint를 기준으로 중복 생성을 방어합니다. 같은 승인 또는 취소 요청이 반복되어도 결제와 원장이 중복 생성되지 않도록 설계했습니다.
-
-### 결과불명과 복구 작업
-
-PG 응답이 명확하지 않은 경우 승인 결과불명은 `APPROVE_UNKNOWN`, 취소 결과불명은 `CANCEL_UNKNOWN` 상태로 남기고 RecoveryTask를 생성합니다. 결과가 확정되기 전에는 SALE/CANCEL 원장을 만들지 않아 정산 대상에 잘못 포함되지 않도록 했습니다.
-
-### 망취소
-
-PG 승인 성공 후 내부 저장 또는 후속 처리에서 장애가 발생할 수 있는 상황을 고려했습니다. 이런 경우 운영자가 확인할 수 있도록 복구 작업을 남기고, 필요한 경우 망취소가 필요한 상태로 추적할 수 있게 구성했습니다.
-
-### 정산
-
-정산은 payment 테이블을 직접 집계하지 않고 SALE/CANCEL 매출 원장을 기준으로 계산합니다. 매출 원장 금액에서 PG 수수료, 수수료 VAT, 정액 수수료, 조정금, 다음정산차감액을 반영해 정산 예정금액을 계산합니다.
-
-## 결제/취소 처리 흐름
+```
+                    승인 요청
+                       │
+              ┌────────┴────────┐
+           success           unknown
+              │                 │
+           APPROVED      APPROVE_UNKNOWN
+              │                 │
+         취소 요청         retry-query 성공
+              │                 │
+    ┌─────────┼──────┐       APPROVED
+ partial    full  unknown
+    │         │      │
+PARTIAL_  CANCELED  CANCEL_
+CANCELED            UNKNOWN
+```
 
 ```mermaid
 flowchart TD
-    A[결제 승인 요청] --> B[승인 요청값 검증]
-    B --> C{중복 승인 요청인가}
-    C -- 예 --> C1[기존 결제 결과 반환]
-    C -- 아니오 --> D[Mock PG 승인 호출]
+    A[결제 승인 요청] --> B[요청값 검증]
+    B --> C{중복 요청?}
+    C -- 예 --> C1[기존 결과 반환]
+    C -- 아니오 --> D[GatewayRouter → PgProvider 결정]
+    D --> E[PgApiLog 저장 REQUESTED]
+    E --> F[PG 승인 요청]
 
-    D --> E{PG 승인 결과}
-    E -- 성공 --> F[payment_transaction 저장<br/>status = APPROVED]
-    F --> G[sales_transaction SALE 생성]
-    G --> H[external_send_request 생성]
-    G --> I[alimtalk_queue 생성]
+    F --> G{승인 결과}
+    G -- 성공 --> H[PaymentTransaction 저장 APPROVED]
+    H --> I[SalesTransaction SALE 생성]
+    I --> J[ExternalSendRequest 등록]
+    I --> K[AlimtalkQueue 등록]
+    H -- 내부 처리 실패 --> L[NETWORK_CANCEL_REQUIRED]
+    L --> M[RecoveryTask 생성 NETWORK_CANCEL]
 
-    E -- 결과불명 --> J[payment_transaction 저장<br/>status = APPROVE_UNKNOWN]
-    J --> K[RecoveryTask 생성]
-    K --> L[운영자 또는 배치 재조회 대기]
+    G -- 결과불명 --> N[PaymentTransaction 저장 APPROVE_UNKNOWN]
+    N --> O[RecoveryTask 생성 APPROVE_UNKNOWN_CHECK]
+    O --> P[retry-query 대기]
 
-    E -- 실패 --> M[승인 실패 응답]
+    G -- 실패 --> Q[BusinessException]
 
-    N[취소 요청] --> O[취소 요청값 검증]
-    O --> P{중복 취소 요청인가}
-    P -- 예 --> P1[기존 취소 결과 반환]
-    P -- 아니오 --> Q[payment row lock 조회]
-    Q --> R{취소 가능 금액 검증}
-    R -- 초과 --> R1[취소 차단]
-    R -- 가능 --> S[Mock PG 취소 호출]
+    R[취소 요청] --> S[findByIdForUpdate 비관적 락]
+    S --> T{중복 / 금액 / 상태 검증}
+    T -- 차단 --> T1[예외 반환]
+    T -- 통과 --> U[PG 취소 요청]
 
-    S --> T{PG 취소 결과}
-    T -- 성공 --> U[payment_cancel 저장]
-    U --> V[payment 상태 갱신]
-    V --> W[sales_transaction CANCEL 생성<br/>음수 거래]
-    W --> X[external_send_request 생성]
-    W --> Y[alimtalk_queue 생성]
+    U --> V{취소 결과}
+    V -- 성공 --> W[PaymentCancel 저장]
+    W --> X[payment.cancel 상태 갱신]
+    X --> Y[SalesTransaction CANCEL 생성 음수]
+    Y --> Z[ExternalSendRequest 등록]
+    Y --> AA[AlimtalkQueue 등록]
 
-    T -- 결과불명 --> Z[payment 상태 CANCEL_UNKNOWN]
-    Z --> AA[RecoveryTask 생성]
+    V -- 결과불명 --> AB[CANCEL_UNKNOWN]
+    AB --> AC[RecoveryTask 생성 CANCEL_UNKNOWN_CHECK]
+    V -- 실패 --> AD[CANCEL_FAILED + BusinessException]
 ```
 
-취소 요청은 고객 취소, 주문 시스템 자동 취소, 운영자 취소, 복구 배치 등 여러 경로에서 들어올 수 있습니다. 서비스 계층에서는 요청 주체와 관계없이 중복 요청, 취소 가능 금액, 결제 상태를 검증합니다.
+## 정산 프로세스
 
-`APPROVE_UNKNOWN` 또는 `CANCEL_UNKNOWN` 상태에서는 SALE/CANCEL 원장을 바로 생성하지 않습니다. 이후 재조회로 결과가 확정되면 그때 매출 원장과 후속 처리 Queue를 생성합니다.
+### 상태 전이
 
-## 정산 처리 흐름
+```
+DRAFT → CONFIRMED → PAID
+```
+
+| 단계 | 트리거 | 처리 내용 |
+|------|--------|-----------|
+| **DRAFT** | 운영자가 배치 실행 | `settlementIncludedYn = false` 매출 원장 집계, 수수료/VAT 계산, 명세 생성 |
+| **CONFIRMED** | 운영자가 정산 확정 | DRAFT 상태 검증 → SalesTransaction 전체 `markSettled()` → 이후 수정 불가 |
+| **PAID** | 운영자가 지급 처리 | CONFIRMED 상태 검증 → SalesTransaction 전체 `markPaid()` |
+
+- 동일 정산일 + MID 기준 중복 배치 실행은 `ConcurrentHashMap` 인메모리 락과 DB unique constraint로 이중 방어
+- `settlementIncludedYn = true` 처리로 같은 매출 원장이 다음 배치에서 중복 집계되는 것을 방지
+- 정산 확정 또는 지급 완료 후 발생한 취소는 기존 명세를 수정하지 않고 다음 정산 배치에서 차감
 
 ```mermaid
 flowchart TD
-    A[정산 배치 실행] --> B[정산 기간, MID, 결제수단 확인]
-    B --> C{동일 정산 기준 중복 확인}
-    C -- 이미 존재 --> C1[중복 정산 방지]
-    C -- 없음 --> D[sales_transaction 기준 대상 조회]
+    A[정산 배치 실행] --> B{동일 정산일·MID 중복 실행?}
+    B -- 예 --> B1[ConflictException]
+    B -- 아니오 --> C[미정산 매출 원장 조회<br/>settlementIncludedYn = false]
 
-    D --> E[SALE/CANCEL 원장 집계]
-    E --> F[순매출 계산]
-    F --> G[PG 수수료 정책 조회]
-    G --> H[수수료, VAT, 정액 수수료 계산]
-    H --> I[조정금, 다음정산차감액 반영]
-    I --> J[settlement_statement 생성]
-    J --> K[settlement_detail 생성]
-    K --> L[settlement_fee_detail 생성]
+    C --> D[SALE / CANCEL 원장 집계]
+    D --> E[PG 수수료 정책 조회]
+    E --> F[수수료 · VAT 계산]
+    F --> G[settlement_statement 생성 DRAFT]
+    G --> H[settlement_detail 생성]
+    H --> I[settlement_fee_detail 생성]
+    I --> J[포함 원장 settlementIncludedYn = true]
 
-    L --> M[CALCULATED]
-    M --> N[운영자 정산 확정]
-    N --> O[CONFIRMED]
-    O --> P[지급 완료]
-    P --> Q[PAID]
+    J --> K[운영자 정산 확정]
+    K --> L{DRAFT 상태?}
+    L -- 아니오 --> L1[ConflictException]
+    L -- 예 --> M[SalesTransaction markSettled]
+    M --> N[CONFIRMED]
 
-    R[확정 또는 지급 후 취소 발생] --> S[CANCEL 원장 생성]
-    S --> T[기존 정산명세 수정 금지]
-    T --> U[다음 정산에서 다음정산차감 반영]
+    N --> O[운영자 지급 처리]
+    O --> P{CONFIRMED 상태?}
+    P -- 아니오 --> P1[ConflictException]
+    P -- 예 --> Q[SalesTransaction markPaid]
+    Q --> R[PAID]
+
+    S[정산 확정·지급 후 취소 발생] --> T[CANCEL 원장 생성]
+    T --> U[기존 명세 수정 금지]
+    U --> V[다음 정산 배치에서 차감]
 ```
 
-정산의 기준 데이터는 결제 테이블이 아니라 매출 원장입니다. 결제 승인은 SALE 결제매출, 취소 확정은 CANCEL 취소매출로 기록하고, 정산 배치는 이 원장 데이터를 기준으로 수수료와 조정금을 반영합니다.
+### SalesTransaction.settlementStatus 변화
 
-## 용어 정리
+| 타이밍 | settlementStatus |
+|--------|-----------------|
+| 매출 발생 | `NOT_SETTLED` |
+| 배치에 포함됨 | `CALCULATED` |
+| 정산 확정 | `SETTLED` |
+| 지급 처리 | `PAID` |
 
-- SALE 결제매출: PG 승인 성공 후 생성되는 양수 매출 원장
-- CANCEL 취소매출: PG 취소 성공 후 생성되는 음수 매출 원장
-- 승인 결과불명: PG 승인 요청 결과가 timeout 또는 응답 유실로 확정되지 않은 상태
-- 취소 결과불명: PG 취소 요청 결과가 timeout 또는 응답 유실로 확정되지 않은 상태
-- RecoveryTask: 결과불명, 망취소, 후속 처리 실패를 추적하고 재처리하기 위한 복구 작업
-- 다음정산차감: 정산 확정 또는 지급 완료 후 발생한 취소 거래를 다음 정산 배치에서 차감 반영하는 상태
+## 서비스 계층 구조
 
-## 데이터 무결성 포인트
+```
+PaymentApproveService   — 승인, StdPay 준비/처리
+PaymentCancelService    — 취소 (Bridge / 직접)
+PaymentQueryService     — 재조회, 결제 목록/상세/로그
+PaymentNotificationService  — ExternalSendRequest / AlimtalkQueue 생성
+PaymentRecoveryService  — RecoveryTask 생성 및 성공 처리
+PaymentRecoveryOperationService — RecoveryTask 운영 조회 / 재시도 / 수동 확정
+SalesLedgerService      — 매출 원장 조회 / 상세 링크
+SettlementOperationService  — 정산 배치 실행 / 확정 / 지급 처리
+SettlementBatchProcessor    — 정산 계산 로직 (REQUIRES_NEW 격리)
+PaymentAuditHelper      — PgApiLog / AuditLog 저장 공통 유틸
+```
 
-주요 중복 방어는 서비스 로직과 DB unique constraint를 함께 사용합니다.
+단일 서비스(`PaymentOperationService`)에 집중되던 777줄·14 의존성을 책임 기준으로 분리했습니다.
 
-- `payment_transaction`: 주문번호, PG 거래번호, 승인 요청키 중복 방어
-- `payment_cancel`: 취소 요청키 중복 방어
-- `sales_transaction`: sourceType + sourceId 기준 SALE/CANCEL 원장 중복 방어
-- `external_send_request`: requestKey 기준 외부전송 중복 방어
-- `alimtalk_queue`: messageKey 기준 알림톡 Queue 중복 방어
-- `payment_recovery_task`: taskKey 기준 복구 작업 중복 방어
+## 데이터 무결성
 
-## 예외 응답과 추적
+중복 방어는 서비스 로직과 DB unique constraint를 함께 사용합니다.
 
-API 예외 응답은 `ErrorCode`, `requestId`, `fieldErrors` 기반으로 표준화했습니다. 검증 실패, 상태 충돌, 중복 요청, 데이터 제약 조건 충돌, 서버 오류를 서로 다른 code/status로 구분하고, 화면과 로그에서 같은 requestId로 추적할 수 있게 구성했습니다.
+| 테이블 | unique 키 |
+|--------|-----------|
+| `payment_transaction` | orderNo, tid, approvalRequestKey |
+| `payment_cancel` | cancelRequestKey |
+| `sales_transaction` | sourceType + sourceId |
+| `external_send_request` | requestKey |
+| `alimtalk_queue` | messageKey |
+| `payment_recovery_task` | taskKey |
+
+## 예외 응답
+
+모든 API 예외는 `ErrorCode`, `requestId`, `fieldErrors` 구조로 표준화되어 있습니다. 화면과 서버 로그에서 같은 `requestId`로 추적할 수 있습니다.
+
+| 상황 | HTTP Status |
+|------|-------------|
+| 요청값 검증 실패 | 400 |
+| 상태 충돌 (이미 취소됨 등) | 409 |
+| 리소스 없음 | 404 |
+| 비즈니스 규칙 위반 | 422 |
+| 서버 오류 | 500 |
 
 ## 화면 구성
 
-- `/dashboard`: 포트폴리오 프로젝트 목록과 상세 팝업
-- `/admin/payment-operations`: Mock PG 승인, 취소, 결과불명, 망취소 시나리오 실행
-- `/admin/sales-ledger`: SALE/CANCEL 매출 원장 조회와 상세 확인
-- `/admin/settlements`: 매출 원장 기준 정산 명세 생성과 상태 확인
-- `/admin/database-spec`: 결제, 취소, 매출 원장, 외부전송, 알림톡, 복구 작업, 정산 테이블 명세
-- `/swagger-ui/index.html`: REST API 문서
+| 경로 | 설명 |
+|------|------|
+| `/dashboard` | 포트폴리오 프로젝트 목록과 상세 팝업 |
+| `/admin/payment-operations` | Mock PG 승인·취소·결과불명·망취소 시나리오 실행 |
+| `/admin/sales-ledger` | SALE/CANCEL 매출 원장 조회 및 상세 |
+| `/admin/settlements` | 정산 명세 생성·확정·지급 처리 |
+| `/admin/database-spec` | 전체 테이블 명세 |
+| `/swagger-ui/index.html` | REST API 문서 |
 
-## 구현 상태
+## 용어
 
-### 1차 구현 완료
-
-- Mock PG 승인/취소
-- 중복 승인/취소 방지
-- 부분취소 금액 검증
-- `APPROVE_UNKNOWN` / `CANCEL_UNKNOWN` 결과불명 처리
-- RecoveryTask 생성
-- SALE/CANCEL 매출 원장
-- 외부전송 대기함
-- 알림톡 Queue
-- 매출 원장 Tabulator 조회
-- ErrorCode/requestId/fieldErrors 기반 예외 응답
-- Fly.io 데모 배포
-
-### 구현 중
-
-- RecoveryTask 운영 재처리 화면
-- 정산 수수료 상세 snapshot 고도화
-- 정산 후 취소 다음정산차감 시나리오
-- 정산 배치 동시 실행 방어
-- 대량 데이터 기준 매출 원장 summary DB 집계 최적화
-
-### 확장 예정
-
-- 입점몰 sellerId/orderItemId 기반 셀러별 정산
-- 영업일/공휴일 기준 D+N 정산
-- 대량 데이터 100만 건 성능 테스트
-- 실제 PG/알림톡 외부망 연동
-- 운영자 권한과 감사 로그
+| 용어 | 설명 |
+|------|------|
+| SALE 결제매출 | PG 승인 성공 후 생성되는 양수 매출 원장 |
+| CANCEL 취소매출 | PG 취소 성공 후 생성되는 음수 매출 원장 |
+| 승인 결과불명 | PG 승인 응답이 timeout 또는 유실로 확정되지 않은 상태 |
+| 취소 결과불명 | PG 취소 응답이 timeout 또는 유실로 확정되지 않은 상태 |
+| RecoveryTask | 결과불명·망취소·후속 처리 실패를 추적하고 재처리하는 복구 작업 |
+| 망취소 | PG 승인 성공 후 내부 처리 실패 시 PG에 취소를 요청하는 보상 트랜잭션 |
+| 다음정산차감 | 정산 확정 후 발생한 취소를 다음 배치에서 차감 반영하는 처리 |
 
 ## 기술 스택
 
-- Java 17
-- Spring Boot 3
-- Spring Data JPA
-- Thymeleaf
-- Vanilla JavaScript
-- Tabulator
-- H2 / MySQL
-- Gradle
+- Java 17, Spring Boot 3
+- Spring Data JPA, Thymeleaf
+- Vanilla JavaScript, Tabulator
+- H2 (로컬/데모) / MySQL (운영)
+- Gradle 멀티모듈 (`api` / `core`)
 - Fly.io
 
 ## 로컬 실행
 
 ```powershell
 .\gradlew.bat bootRun
-```
-
-기본 접속 주소:
-
-```text
-http://localhost:8080/
-http://localhost:8080/admin/payment-operations
+# http://localhost:8080/
 ```
 
 ## 빌드
@@ -235,34 +298,17 @@ fly auth login
 fly deploy --remote-only
 ```
 
-현재 데모는 첫 접속 지연을 줄이기 위해 Machine 자동 중지를 끄는 방향으로 설정했습니다.
-
-```toml
-auto_stop_machines = "off"
-min_machines_running = 1
-```
-
-이 설정은 유휴 상태에서도 Machine을 계속 실행하므로 비용이 늘 수 있습니다. 비용 절감이 더 중요하면 `auto_stop_machines = "stop"` 또는 `"suspend"`, `min_machines_running = 0`으로 되돌릴 수 있습니다.
+> 현재 데모는 `auto_stop_machines = "off"`, `min_machines_running = 1`로 설정해 첫 접속 지연을 없앴습니다.
 
 ## 운영 환경 주의사항
 
-현재 Fly.io 데모는 포트폴리오 확인용입니다. 실제 운영 환경에서는 다음 보강이 필요합니다.
+포트폴리오 확인용 데모이며, 실제 운영 환경에서는 다음 보강이 필요합니다.
 
 - H2 대신 PostgreSQL 또는 MySQL 사용
 - 관리자 인증/인가 적용
 - PG callback signature 검증
 - IP allowlist 및 CORS 제한
 - CSRF 방어
-- 정산 배치 중복 실행 방어
-- RecoveryTask 운영 재처리 화면 고도화
-
-## 보조 스크립트
-
-```powershell
-.\scripts\setup-fly.ps1
-.\scripts\deploy-fly.ps1
-.\scripts\check-fly.ps1 -BaseUrl "https://yeni-demo.fly.dev"
-```
 
 ## License
 

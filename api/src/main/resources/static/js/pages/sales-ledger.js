@@ -9,9 +9,6 @@
             paginationSize: 15,
             paginationSizeSelector: [15, 30, 50],
             placeholder: "조회된 매출 원장 거래가 없습니다.",
-            rowClick: function (event, row) {
-                openDetail(row.getData());
-            },
             columns: [
                 {
                     title: "상세",
@@ -42,6 +39,9 @@
             ]
         });
 
+        table.on("rowClick", function (event, row) {
+            openDetail(row.getData());
+        });
         bindFilters();
         bindModal();
         setDefaultDateRange("salesStartDate", "salesEndDate");

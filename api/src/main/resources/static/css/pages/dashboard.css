@@ -545,16 +545,33 @@
         .plain-row:last-child { border-bottom: 0; }
         .plain-row span { color: var(--muted); font-weight: 700; }
         .plain-row strong { color: #2a2f3a; font-weight: 650; line-height: 1.45; }
-        .scope-table td, .scope-table th { height: auto; padding: 13px 14px; vertical-align: top; line-height: 1.58; }
+        .scope-table { min-width: 1020px; table-layout: auto; }
+        .scope-table td, .scope-table th { height: auto; padding: 13px 14px; vertical-align: top; line-height: 1.6; }
         .scope-table tbody tr { cursor: default; }
-        .scope-table td:first-child { font-weight: 760; color: var(--text); white-space: nowrap; }
+        .scope-table td:first-child { font-weight: 760; color: var(--text); white-space: nowrap; min-width: 140px; }
         .scope-table th:nth-child(2),
         .scope-table td:nth-child(2) {
             width: 96px;
+            min-width: 96px;
             white-space: nowrap;
         }
+        /* 구현범위 테이블: 5컬럼 너비 배분 */
+        #scope .scope-table th:nth-child(1),
+        #scope .scope-table td:nth-child(1) { width: 140px; min-width: 140px; white-space: nowrap; }
+        #scope .scope-table th:nth-child(3),
+        #scope .scope-table td:nth-child(3) { min-width: 260px; }
+        #scope .scope-table th:nth-child(4),
+        #scope .scope-table td:nth-child(4) { min-width: 220px; }
+        #scope .scope-table th:nth-child(5),
+        #scope .scope-table td:nth-child(5) { min-width: 220px; }
+        /* 실무경험 테이블: 4컬럼 너비 배분 */
+        #operations .scope-table td:nth-child(1) { width: 160px; min-width: 160px; white-space: nowrap; }
+        #operations .scope-table td:nth-child(2),
+        #operations .scope-table td:nth-child(3),
+        #operations .scope-table td:nth-child(4) { min-width: 220px; }
         .scope-table td {
             word-break: keep-all;
+            overflow-wrap: break-word;
         }
         .scope-excluded td {
             color: #7c8392;
@@ -1302,14 +1319,17 @@
             .content { padding: 16px 12px 36px; }
             .topbar { min-height: 58px; height: auto; padding: 10px 12px; }
             .top-left { width: 100%; }
-            .page-title h1 { font-size: 14px; line-height: 1.35; }
+            .page-title h1 { font-size: 14px; line-height: 1.35; word-break: keep-all; }
             .impact-hero { padding: 18px; }
-            .impact-copy h2 { font-size: 24px; line-height: 1.25; }
-            .impact-copy p { font-size: 13px; line-height: 1.62; }
+            .impact-copy h2 { font-size: 24px; line-height: 1.25; word-break: keep-all; letter-spacing: -0.04em; }
+            .impact-copy p { font-size: 13px; line-height: 1.65; word-break: keep-all; }
+            .hero-keywords span { font-size: 11.5px; word-break: keep-all; }
             .hero-actions { display: grid; grid-template-columns: 1fr; }
             .hero-actions .primary-action,
             .hero-actions .btn { width: 100%; }
             .demo-entry-card { min-height: auto; padding: 16px; }
+            .demo-entry-card strong { font-size: 15px; word-break: keep-all; }
+            .demo-entry-card p { font-size: 12px; word-break: keep-all; line-height: 1.6; }
             .table-wrap { border-radius: 14px; }
             .project-table { min-width: 0; }
             .project-table .tabulator-header { display: none; }
@@ -1331,5 +1351,23 @@
             .modal-main,
             .modal-info,
             .modal-header { padding-left: 18px; padding-right: 18px; }
-            .modal-header h2 { font-size: 18px; line-height: 1.35; }
+            .modal-header h2 { font-size: 18px; line-height: 1.35; word-break: keep-all; }
+            .modal-info-desc { word-break: keep-all; line-height: 1.7; }
+            .modal-section p, .modal-section li { word-break: keep-all; line-height: 1.75; }
+            .modal-section h3 { word-break: keep-all; }
+            .flow-step strong { font-size: 12px; word-break: keep-all; }
+            .plain-row strong { word-break: keep-all; line-height: 1.55; }
+            .workflow-step strong { word-break: keep-all; }
+            .workflow-step p { word-break: keep-all; line-height: 1.65; }
+            /* scope-table / operations table: 가로 스크롤 */
+            #scope .table-wrap,
+            #operations .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .scope-table { min-width: 900px; }
+            /* 경력요약 plain-row */
+            .plain-row { grid-template-columns: 1fr; gap: 4px; padding: 12px 14px; }
+            .plain-row span { font-size: 11px; }
+            .plain-row strong { font-size: 12.5px; }
+            /* 개발흐름 workflow */
+            .workflow-step { padding: 14px; }
+            .workflow-step strong { font-size: 13px; }
         }

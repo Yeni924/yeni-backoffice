@@ -18,7 +18,6 @@ document.addEventListener("click", function(event) {
 
 document.addEventListener("DOMContentLoaded", function() {
     initializeSidebarGroups();
-    initializeAdminLogout();
 });
 
 window.AppLoading = (function () {
@@ -104,18 +103,6 @@ function setGroupExpanded(group, expanded) {
     if (toggle) {
         toggle.setAttribute("aria-expanded", String(expanded));
     }
-}
-
-function initializeAdminLogout() {
-    const logoutBtn = document.getElementById("adminLogoutBtn");
-    if (!logoutBtn) {
-        return;
-    }
-
-    logoutBtn.addEventListener("click", async function() {
-        await fetch("/api/admin/auth/logout", { method: "POST" });
-        window.location.href = "/dashboard";
-    });
 }
 
 async function parseApiResponse(response) {

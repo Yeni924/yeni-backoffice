@@ -1,6 +1,7 @@
 (function () {
     let table;
     let rows = [];
+    let currentStatementId = null;
 
     document.addEventListener("DOMContentLoaded", async function () {
         table = new Tabulator("#settlementPageTable", {
@@ -9,9 +10,6 @@
             paginationSize: 15,
             paginationSizeSelector: [10, 15, 30, 50],
             placeholder: "조회된 정산 명세가 없습니다.",
-            rowClick: function (event, row) {
-                openSettlementDetail(row.getData());
-            },
             columns: [
                 {title: "ID", field: "id", width: 80, hozAlign: "center"},
                 {title: "정산일", field: "settlementDate", width: 130, sorter: "date"},
@@ -25,6 +23,9 @@
             ]
         });
 
+        table.on("rowClick", function (event, row) {
+            openSettlementDetail(row.getData());
+        });
         bindFilters();
         bindModal();
         setDefaultDateRange("settlementStartDate", "settlementEndDate");
@@ -58,25 +59,58 @@
                 closeSettlementDetail();
             }
         });
+        document.getElementById("confirmStatementBtn").addEventListener("click", async function () {
+            if (!currentStatementId) return;
+            if (!confirm("정산을 확정하면 내용을 변경할 수 없습니다. 확정하시겠습니까?")) return;
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = "확정 처리 중...";
+            try {
+                const response = await fetch("/admin/api/settlements/" + currentStatementId + "/confirm", {method: "POST"});
+                const updated = await parseApiResponse(response);
+                upsertStatement(updated);
+                closeSettlementDetail();
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "정산 확정";
+            }
+        });
+        document.getElementById("payStatementBtn").addEventListener("click", async function () {
+            if (!currentStatementId) return;
+            if (!confirm("지급 처리 완료로 변경합니다. 계속하시겠습니까?")) return;
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = "처리 중...";
+            try {
+                const response = await fetch("/admin/api/settlements/" + currentStatementId + "/pay", {method: "POST"});
+                const updated = await parseApiResponse(response);
+                upsertStatement(updated);
+                closeSettlementDetail();
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "지급 처리";
+            }
+        });
     }
 
     async function runSettlement() {
         const button = document.getElementById("runSettlementPageBtn");
         const originalText = button.textContent;
-        const targetDate = new Date().toISOString().slice(0, 10);
         button.disabled = true;
         button.textContent = "정산 배치 실행 중...";
         try {
             const request = fetch("/admin/api/settlements/batch/run", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({targetDate: targetDate})
+                body: JSON.stringify({})
             });
         const response = window.AppLoading
                 ? await window.AppLoading.track(request, "정산 데이터를 계산하고 있어요")
                 : await request;
-            await parseApiResponse(response);
+            const statement = await parseApiResponse(response);
+            prepareFiltersFor(statement);
             await refresh();
+            upsertStatement(statement);
         } finally {
             button.disabled = false;
             button.textContent = originalText;
@@ -93,6 +127,35 @@
             ? await window.AppLoading.track(request, "정산 명세를 불러오고 있어요")
             : await request;
         rows = await parseApiResponse(response);
+        applyFilters();
+    }
+
+    function prepareFiltersFor(statement) {
+        const settlementDate = statement && statement.settlementDate;
+        if (!settlementDate) {
+            return;
+        }
+
+        const startInput = document.getElementById("settlementStartDate");
+        const endInput = document.getElementById("settlementEndDate");
+        if (!startInput.value || settlementDate < startInput.value) {
+            startInput.value = settlementDate;
+        }
+        if (!endInput.value || settlementDate > endInput.value) {
+            endInput.value = settlementDate;
+        }
+        document.getElementById("settlementKeyword").value = "";
+        document.getElementById("settlementStatusFilter").value = "";
+    }
+
+    function upsertStatement(statement) {
+        if (!statement || !statement.id) {
+            return;
+        }
+
+        rows = [statement].concat(rows.filter(function (row) {
+            return row.id !== statement.id;
+        }));
         applyFilters();
     }
 
@@ -128,8 +191,8 @@
         const fee = sum(values, "feeAmount");
         const vat = sum(values, "vatAmount");
         const net = sum(values, "netAmount");
-        document.getElementById("settlementSaleAmount").textContent = formatMoney(values.filter(row => Number(row.grossAmount || 0) > 0).reduce((sum, row) => sum + Number(row.grossAmount || 0), 0));
-        document.getElementById("settlementCancelAmount").textContent = formatMoney(values.filter(row => Number(row.grossAmount || 0) < 0).reduce((sum, row) => sum + Number(row.grossAmount || 0), 0));
+        document.getElementById("settlementSaleAmount").textContent = formatMoney(sum(values, "saleAmount"));
+        document.getElementById("settlementCancelAmount").textContent = formatMoney(sum(values, "cancelAmount"));
         document.getElementById("settlementGrossAmount").textContent = formatMoney(gross);
         document.getElementById("settlementFeeAmount").textContent = formatMoney(fee);
         document.getElementById("settlementVatAmount").textContent = formatMoney(vat);
@@ -151,14 +214,29 @@
             ? await window.AppLoading.track(request, "정산 상세를 정리하고 있어요")
             : await request;
         const page = await parseApiResponse(response);
+        currentStatementId = row.id;
         document.getElementById("settlementDetailTitle").textContent = "정산 명세 #" + row.id;
         document.getElementById("settlementDetailBody").innerHTML = renderDetail(page);
+        document.getElementById("confirmStatementBtn").hidden = row.settlementStatus !== "DRAFT";
+        document.getElementById("payStatementBtn").hidden = row.settlementStatus !== "CONFIRMED";
         document.getElementById("settlementDetailModal").hidden = false;
     }
 
     async function parseApiResponse(response) {
         const text = await response.text();
-        const data = text ? JSON.parse(text) : {};
+        const contentType = response.headers.get("content-type") || "";
+        if (response.redirected || contentType.includes("text/html")) {
+            throw new Error("서버가 JSON 대신 화면 응답을 반환했습니다.");
+        }
+
+        let data = {};
+        if (text) {
+            try {
+                data = JSON.parse(text);
+            } catch (error) {
+                throw new Error("서버 응답을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+            }
+        }
         if (!response.ok) {
             const requestId = data.requestId ? " (requestId: " + data.requestId + ")" : "";
             throw new Error((data.message || "요청 처리에 실패했습니다.") + requestId);
@@ -168,6 +246,9 @@
 
     function closeSettlementDetail() {
         document.getElementById("settlementDetailModal").hidden = true;
+        currentStatementId = null;
+        document.getElementById("confirmStatementBtn").hidden = true;
+        document.getElementById("payStatementBtn").hidden = true;
     }
 
     function renderDetail(page) {
@@ -234,7 +315,10 @@
     }
 
     function toDateInput(date) {
-        return date.toISOString().slice(0, 10);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return year + "-" + month + "-" + day;
     }
 
     function moneyFormatter(cell) {

@@ -26,15 +26,15 @@ import java.util.List;
 public class PaymentRecoveryOperationService {
 
     private final PaymentRecoveryTaskRepository recoveryTaskRepository;
-    private final PaymentOperationService paymentOperationService;
+    private final PaymentQueryService paymentQueryService;
     private final AuditLogRepository auditLogRepository;
 
     public PaymentRecoveryOperationService(
             PaymentRecoveryTaskRepository recoveryTaskRepository,
-            PaymentOperationService paymentOperationService,
+            PaymentQueryService paymentQueryService,
             AuditLogRepository auditLogRepository) {
         this.recoveryTaskRepository = recoveryTaskRepository;
-        this.paymentOperationService = paymentOperationService;
+        this.paymentQueryService = paymentQueryService;
         this.auditLogRepository = auditLogRepository;
     }
 
@@ -84,7 +84,7 @@ public class PaymentRecoveryOperationService {
                 task.markFailed("paymentId가 없어 자동 승인 재조회가 불가능합니다. orderNo/tid/idempotencyKey 기준으로 수동 확인이 필요합니다.");
                 return RecoveryTaskResponse.from(task);
             }
-            PaymentQueryResponse result = paymentOperationService.retryQuery(task.getPaymentId());
+            PaymentQueryResponse result = paymentQueryService.retryQuery(task.getPaymentId());
             if (PaymentStatus.APPROVED.name().equals(result.paymentStatus())) {
                 task.markSuccess();
                 saveAudit("RECOVERY_TASK", "RETRY_SUCCESS", task.getTaskKey(), "승인 결과불명 재조회가 성공했습니다.");
