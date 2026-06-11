@@ -2,6 +2,8 @@ package com.yeni.backoffice.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yeni.backoffice.api.database.view.DatabaseSpecDescriptionCatalog;
+import com.yeni.backoffice.api.database.view.DatabaseSpecService;
 import com.yeni.backoffice.core.common.exception.BusinessException;
 import com.yeni.backoffice.core.common.exception.ErrorCode;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentApproveRequest;
@@ -112,6 +114,12 @@ class YeniBackofficeApplicationTests {
 	@Autowired
 	private PlatformTransactionManager transactionManager;
 
+	@Autowired
+	private DatabaseSpecService databaseSpecService;
+
+	@Autowired
+	private DatabaseSpecDescriptionCatalog databaseSpecDescriptionCatalog;
+
 	@Test
 	void contextLoads() {
 	}
@@ -119,6 +127,12 @@ class YeniBackofficeApplicationTests {
 	@Test
 	void dashboardPageLoads() throws Exception {
 		mockMvc.perform(get("/dashboard"))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void faviconLoadsAsStaticResource() throws Exception {
+		mockMvc.perform(get("/favicon.ico"))
 				.andExpect(status().isOk());
 	}
 
@@ -138,7 +152,26 @@ class YeniBackofficeApplicationTests {
 	void databaseSpecPageLoadsWithoutLogin() throws Exception {
 		mockMvc.perform(get("/admin/database-spec"))
 				.andExpect(status().isOk())
-				.andExpect(content().string(org.hamcrest.Matchers.containsString("payment_transaction")));
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("전체 스키마 자동 명세")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("payment_transaction")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("결제 승인 요청과 PG 승인 결과")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("중복 승인을 방지하는 승인 요청 고유 키")));
+	}
+
+	@Test
+	void databaseSpecDescriptionsCoverEveryTableAndColumn() {
+		List<DatabaseSpecService.TableSpec> tableSpecs = databaseSpecService.getTableSpecs();
+
+		assertThat(tableSpecs).isNotEmpty();
+		assertThat(tableSpecs).allSatisfy(table -> {
+			assertThat(databaseSpecDescriptionCatalog.hasTableDescription(table.tableName()))
+					.as("table description: %s", table.tableName())
+					.isTrue();
+			assertThat(table.columns()).allSatisfy(column ->
+					assertThat(databaseSpecDescriptionCatalog.hasColumnDescription(table.tableName(), column.columnName()))
+							.as("column description: %s.%s", table.tableName(), column.columnName())
+							.isTrue());
+		});
 	}
 
 	@Test

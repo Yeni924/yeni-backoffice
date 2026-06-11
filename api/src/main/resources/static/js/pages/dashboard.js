@@ -224,17 +224,6 @@ function initProjectTable() {
             row.getElement().style.setProperty("--row-index", Math.max(position - 1, 0));
         },
 
-        rowClick: function (event, row) {
-            const data = row.getData();
-
-            if (!data || !data.key) {
-                console.error("프로젝트 key가 없습니다.", data);
-                return;
-            }
-
-            openProject(data.key);
-        },
-
         columns: [
             {
                 title: "No",
@@ -327,6 +316,16 @@ function initProjectTable() {
                 }
             }
         ]
+    });
+
+    projectTable.on("rowClick", function (event, row) {
+        const data = row.getData();
+
+        if (!data || !data.key) {
+            return;
+        }
+
+        openProject(data.key);
     });
 }
 
