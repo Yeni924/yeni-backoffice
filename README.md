@@ -1,4 +1,5 @@
 # Yeni Backoffice Portfolio
+[권예은_커머스백오피스.pptx](https://github.com/user-attachments/files/28837127/_.pptx)
 
 Spring Boot 기반 결제 운영 백오피스 포트폴리오입니다.
 
