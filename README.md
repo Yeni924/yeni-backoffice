@@ -6,6 +6,8 @@ Spring Boot 기반 결제 운영 백오피스 포트폴리오입니다.
 
 ## Demo
 
+[권예은_커머스백오피스_.pptx.pdf](https://github.com/user-attachments/files/28837173/_._.pptx.pdf)
+
 - 대시보드: https://yeni-demo.fly.dev/
 - PG 운영: https://yeni-demo.fly.dev/admin/payment-operations
 - 매출 원장: https://yeni-demo.fly.dev/admin/sales-ledger

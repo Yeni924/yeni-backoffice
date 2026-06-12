@@ -97,7 +97,8 @@
         const button = document.getElementById("runSettlementPageBtn");
         const originalText = button.textContent;
         button.disabled = true;
-        button.textContent = "정산 배치 실행 중...";
+        button.textContent = "오늘 정산 재계산 중...";
+        renderRunFeedback("오늘 미정산 SALE/CANCEL을 집계하고 있습니다.", "");
         try {
             const request = fetch("/admin/api/settlements/batch/run", {
                 method: "POST",
@@ -111,10 +112,26 @@
             prepareFiltersFor(statement);
             await refresh();
             upsertStatement(statement);
+            renderRunFeedback(
+                "정산 초안 #" + statement.id + "을 반영했습니다. "
+                + "SALE " + formatMoney(statement.saleAmount)
+                + " / CANCEL " + formatMoney(statement.cancelAmount)
+                + " / 순매출 " + formatMoney(statement.grossAmount)
+                + ". 작성중 상태에서는 새 거래가 들어온 뒤 다시 실행하면 같은 명세에 누적 재계산됩니다.",
+                "success"
+            );
+        } catch (error) {
+            renderRunFeedback(error.message || "오늘 정산 초안을 처리하지 못했습니다.", "error");
         } finally {
             button.disabled = false;
             button.textContent = originalText;
         }
+    }
+
+    function renderRunFeedback(message, state) {
+        const feedback = document.getElementById("settlementRunFeedback");
+        feedback.className = "settlement-run-feedback" + (state ? " " + state : "");
+        feedback.textContent = message;
     }
 
     async function refresh() {
