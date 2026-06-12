@@ -75,8 +75,8 @@
                     <span class="toggle-icon">‹</span>
                 </button>
                 <div class="page-title">
-                    <h1>결제·매출 운영 흐름을 직접 다뤄온 백오피스 개발자입니다.</h1>
-                    <p>승인, 취소, 매출 반영, 외부전송, 알림톡, 정산까지 이어지는 흐름을 실무와 포트폴리오 양쪽에서 구현했습니다.</p>
+                    <h1>결제·매출 백오피스 포트폴리오</h1>
+                    <p>승인·취소·매출 원장·외부전송·알림톡·정산 흐름을 실무와 포트폴리오 양쪽에서 구현했습니다.</p>
                 </div>
             </div>
             <div class="top-actions">
@@ -194,7 +194,7 @@
 
             <section class="section" id="overview">
                 <div class="section-head">
-                    <div class="section-label">경력 요약</div>
+                    <div class="section-label">소개</div>
                     <h2>경력 요약</h2>
                     <p>관리자 화면, 연동 API, 결제/매출, 회원/포인트, 알림톡 업무를 다뤄온 경험을 정리했습니다.</p>
                 </div>
@@ -232,106 +232,164 @@
                     <p>실제 담당했던 업무를 기준으로, 어떤 상황에서 어떻게 처리했는지 정리했습니다.</p>
                 </div>
 
-                <div class="table-wrap">
-                    <table class="scope-table">
-                        <tbody>
-                            <tr>
-                                <td>외부 API 요청/응답 추적</td>
-                                <td>
-                                    PG, 배송, 회원, 포인트, POS/KIOSK 관련 API처럼 외부 시스템과 연결되는 기능은
-                                    실패가 발생했을 때 요청값과 응답값, 실패 사유를 빠르게 확인하는 게 중요했습니다.
-                                </td>
-                                <td>
-                                    운영 중 문제가 생겼을 때 원인을 찾을 수 있도록
-                                    요청/응답 데이터, 처리 결과, 실패 메시지, 처리 시간을 남기는 구조가 필요하다고 느꼈습니다.
-                                </td>
-                                <td>
-                                    포트폴리오에서는 PG API 로그, 외부전송 이력, requestId, elapsedMs, 실패 사유를 분리해 저장하고
-                                    결제 승인부터 외부전송까지 같은 흐름으로 추적할 수 있도록 구성했습니다.
-                                </td>
-                            </tr>
+                <div class="ops-accordion">
 
-                            <tr>
-                                <td>알림톡 Agent 발송 처리</td>
-                                <td>
-                                    알림톡 발송은 단순 API 호출로 끝나는 기능이 아니라
-                                    발송 대상 조회, 발송 요청, 성공/실패 처리, 재시도 기준까지 함께 고려해야 했습니다.
-                                </td>
-                                <td>
-                                    DB Polling 방식으로 발송 대상을 조회하고,
-                                    대량 발송 시 병렬 처리 구조를 적용해 발송 성능을 개선했습니다.
-                                </td>
-                                <td>
-                                    포트폴리오에서는 결제 승인, 취소, 외부전송 실패 같은 이벤트가 발생하면
-                                    알림톡 Queue를 생성하고, 실제 발송 처리는 결제 흐름과 분리할 수 있도록 구조를 잡았습니다.
-                                </td>
-                            </tr>
+                    <div class="acc-item open">
+                        <button class="acc-header" type="button" aria-expanded="true">
+                            <span class="acc-num">01</span>
+                            <span class="acc-title">외부 API 요청/응답 추적</span>
+                            <span class="acc-arrow">▾</span>
+                        </button>
+                        <div class="acc-body">
+                            <div class="acc-inner">
+                                <div class="acc-cols">
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">업무 배경</div>
+                                        <p>PG, 배송, 회원, 포인트, POS/KIOSK 관련 API처럼 외부 시스템과 연결되는 기능은 실패가 발생했을 때 요청값과 응답값, 실패 사유를 빠르게 확인하는 게 중요했습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">실무 인사이트</div>
+                                        <p>운영 중 문제가 생겼을 때 원인을 찾을 수 있도록 요청/응답 데이터, 처리 결과, 실패 메시지, 처리 시간을 남기는 구조가 필요하다고 느꼈습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">포트폴리오 반영</div>
+                                        <p>포트폴리오에서는 PG API 로그, 외부전송 이력, requestId, elapsedMs, 실패 사유를 분리해 저장하고 결제 승인부터 외부전송까지 같은 흐름으로 추적할 수 있도록 구성했습니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                            <tr>
-                                <td>상품·매장 운영 데이터 기준 조율</td>
-                                <td>
-                                    상품, 매장, 카테고리, 옵션 같은 운영 데이터는 관리자 화면에서 등록·수정되고,
-                                    POS/KIOSK 또는 외부 시스템에서 사용할 수 있는 형태로 제공되어야 했습니다.
-                                </td>
-                                <td>
-                                    단말 담당자나 연동 담당자와 필요한 필드, 상태값, 조회 조건, 반영 기준을 직접 확인하며
-                                    관리자 화면과 API 응답 구조를 맞춰가는 작업을 반복했습니다.
-                                </td>
-                                <td>
-                                    포트폴리오에서는 외부 시스템이 필요로 하는 데이터 기준을 명확히 두고,
-                                    요청/응답, 상태값, 로그를 분리해 확인할 수 있는 백오피스 구조로 정리했습니다.
-                                </td>
-                            </tr>
+                    <div class="acc-item">
+                        <button class="acc-header" type="button" aria-expanded="false">
+                            <span class="acc-num">02</span>
+                            <span class="acc-title">알림톡 Agent 발송 처리</span>
+                            <span class="acc-arrow">▾</span>
+                        </button>
+                        <div class="acc-body">
+                            <div class="acc-inner">
+                                <div class="acc-cols">
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">업무 배경</div>
+                                        <p>알림톡 발송은 단순 API 호출로 끝나는 기능이 아니라 발송 대상 조회, 발송 요청, 성공/실패 처리, 재시도 기준까지 함께 고려해야 했습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">실무 인사이트</div>
+                                        <p>DB Polling 방식으로 발송 대상을 조회하고, 대량 발송 시 병렬 처리 구조를 적용해 발송 성능을 개선했습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">포트폴리오 반영</div>
+                                        <p>포트폴리오에서는 결제 승인, 취소, 외부전송 실패 같은 이벤트가 발생하면 알림톡 Queue를 생성하고, 실제 발송 처리는 결제 흐름과 분리할 수 있도록 구조를 잡았습니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                            <tr>
-                                <td>결제/취소 상태값 관리</td>
-                                <td>
-                                    결제는 승인 성공만 관리하면 되는 것이 아니라,
-                                    취소, 부분취소, 중복 요청, 실패 후 재요청 같은 예외 흐름까지 함께 고려해야 했습니다.
-                                </td>
-                                <td>
-                                    원거래와 취소거래를 구분하고,
-                                    요청 중복 여부와 상태 변경 가능 여부를 기준으로 흐름을 나눠야 했습니다.
-                                </td>
-                                <td>
-                                    포트폴리오에서는 결제 승인 시 SALE 거래를 생성하고,
-                                    취소 성공 시 원매출을 수정하지 않고 CANCEL 음수 거래를 별도로 남기는 원장형 구조로 구현했습니다.
-                                </td>
-                            </tr>
+                    <div class="acc-item">
+                        <button class="acc-header" type="button" aria-expanded="false">
+                            <span class="acc-num">03</span>
+                            <span class="acc-title">상품·매장 운영 데이터 기준 조율</span>
+                            <span class="acc-arrow">▾</span>
+                        </button>
+                        <div class="acc-body">
+                            <div class="acc-inner">
+                                <div class="acc-cols">
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">업무 배경</div>
+                                        <p>상품, 매장, 카테고리, 옵션 같은 운영 데이터는 관리자 화면에서 등록·수정되고, POS/KIOSK 또는 외부 시스템에서 사용할 수 있는 형태로 제공되어야 했습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">실무 인사이트</div>
+                                        <p>단말 담당자나 연동 담당자와 필요한 필드, 상태값, 조회 조건, 반영 기준을 직접 확인하며 관리자 화면과 API 응답 구조를 맞춰가는 작업을 반복했습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">포트폴리오 반영</div>
+                                        <p>포트폴리오에서는 외부 시스템이 필요로 하는 데이터 기준을 명확히 두고, 요청/응답, 상태값, 로그를 분리해 확인할 수 있는 백오피스 구조로 정리했습니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                            <tr>
-                                <td>운영 관리자 화면 개선</td>
-                                <td>
-                                    운영자가 실제로 필요로 하는 기능은 단순 등록·수정보다
-                                    상태 확인, 조건 검색, 실패 원인 확인, 재처리 여부 판단에 가까웠습니다.
-                                </td>
-                                <td>
-                                    요청 의도를 먼저 파악한 뒤,
-                                    화면 입력 흐름, 검증 조건, 조회 조건, 외부 시스템 반영 기준을 함께 맞춰가며 기능을 수정했습니다.
-                                </td>
-                                <td>
-                                    포트폴리오에서는 PG 운영 콘솔에서 결제 상태, 매출 원장 생성 여부,
-                                    외부전송 상태, 알림톡 Queue, RecoveryTask를 한 화면에서 확인할 수 있도록 구성했습니다.
-                                </td>
-                            </tr>
+                    <div class="acc-item">
+                        <button class="acc-header" type="button" aria-expanded="false">
+                            <span class="acc-num">04</span>
+                            <span class="acc-title">결제/취소 상태값 관리</span>
+                            <span class="acc-arrow">▾</span>
+                        </button>
+                        <div class="acc-body">
+                            <div class="acc-inner">
+                                <div class="acc-cols">
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">업무 배경</div>
+                                        <p>결제는 승인 성공만 관리하면 되는 것이 아니라, 취소, 부분취소, 중복 요청, 실패 후 재요청 같은 예외 흐름까지 함께 고려해야 했습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">실무 인사이트</div>
+                                        <p>원거래와 취소거래를 구분하고, 요청 중복 여부와 상태 변경 가능 여부를 기준으로 흐름을 나눠야 했습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">포트폴리오 반영</div>
+                                        <p>포트폴리오에서는 결제 승인 시 SALE 거래를 생성하고, 취소 성공 시 원매출을 수정하지 않고 CANCEL 음수 거래를 별도로 남기는 원장형 구조로 구현했습니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                            <tr>
-                                <td>동적 SQL과 파라미터 처리 개선</td>
-                                <td>
-                                    운영성 화면에서는 검색 조건이 많아지면서 동적 SQL이나 조건 분기 로직이 복잡해지는 경우가 있었습니다.
-                                    입력값 처리 방식이 명확하지 않으면 유지보수와 안정성 양쪽에서 문제가 생길 수 있었습니다.
-                                </td>
-                                <td>
-                                    Dapper 사용 시 파라미터 바인딩을 적용해 입력값과 SQL 문장을 분리하고,
-                                    반복되는 조회·수정 로직을 정리하는 방향으로 개선했습니다.
-                                </td>
-                                <td>
-                                    포트폴리오에서는 JPA Repository와 조건 기반 조회를 사용해
-                                    검색 조건을 파라미터로 전달하고, 매출 원장 조회는 DB-side paging과 집계 쿼리로 처리했습니다.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="acc-item">
+                        <button class="acc-header" type="button" aria-expanded="false">
+                            <span class="acc-num">05</span>
+                            <span class="acc-title">운영 관리자 화면 개선</span>
+                            <span class="acc-arrow">▾</span>
+                        </button>
+                        <div class="acc-body">
+                            <div class="acc-inner">
+                                <div class="acc-cols">
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">업무 배경</div>
+                                        <p>운영자가 실제로 필요로 하는 기능은 단순 등록·수정보다 상태 확인, 조건 검색, 실패 원인 확인, 재처리 여부 판단에 가까웠습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">실무 인사이트</div>
+                                        <p>요청 의도를 먼저 파악한 뒤, 화면 입력 흐름, 검증 조건, 조회 조건, 외부 시스템 반영 기준을 함께 맞춰가며 기능을 수정했습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">포트폴리오 반영</div>
+                                        <p>포트폴리오에서는 PG 운영 콘솔에서 결제 상태, 매출 원장 생성 여부, 외부전송 상태, 알림톡 Queue, RecoveryTask를 한 화면에서 확인할 수 있도록 구성했습니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="acc-item">
+                        <button class="acc-header" type="button" aria-expanded="false">
+                            <span class="acc-num">06</span>
+                            <span class="acc-title">동적 SQL과 파라미터 처리 개선</span>
+                            <span class="acc-arrow">▾</span>
+                        </button>
+                        <div class="acc-body">
+                            <div class="acc-inner">
+                                <div class="acc-cols">
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">업무 배경</div>
+                                        <p>운영성 화면에서는 검색 조건이 많아지면서 동적 SQL이나 조건 분기 로직이 복잡해지는 경우가 있었습니다. 입력값 처리 방식이 명확하지 않으면 유지보수와 안정성 양쪽에서 문제가 생길 수 있었습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">실무 인사이트</div>
+                                        <p>Dapper 사용 시 파라미터 바인딩을 적용해 입력값과 SQL 문장을 분리하고, 반복되는 조회·수정 로직을 정리하는 방향으로 개선했습니다.</p>
+                                    </div>
+                                    <div class="acc-col">
+                                        <div class="acc-col-label">포트폴리오 반영</div>
+                                        <p>포트폴리오에서는 JPA Repository와 조건 기반 조회를 사용해 검색 조건을 파라미터로 전달하고, 매출 원장 조회는 DB-side paging과 집계 쿼리로 처리했습니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </section>
 

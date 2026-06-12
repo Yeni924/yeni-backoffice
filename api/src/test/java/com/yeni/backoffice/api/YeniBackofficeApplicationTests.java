@@ -159,6 +159,18 @@ class YeniBackofficeApplicationTests {
 	}
 
 	@Test
+	void salesLedgerAndSettlementPagesExplainFiltersAndDraftRecalculation() throws Exception {
+		mockMvc.perform(get("/admin/payment-operations/sales-ledger"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("빠른 필터")));
+
+		mockMvc.perform(get("/admin/payment-operations/settlements"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("오늘 정산 초안 생성/재계산")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("기존 명세에 누적")));
+	}
+
+	@Test
 	void databaseSpecDescriptionsCoverEveryTableAndColumn() {
 		List<DatabaseSpecService.TableSpec> tableSpecs = databaseSpecService.getTableSpecs();
 
@@ -365,6 +377,43 @@ class YeniBackofficeApplicationTests {
 		assertThat(statement.cancelAmount()).isLessThanOrEqualTo(new BigDecimal("-3000"));
 		assertThat(statement.saleAmount().add(statement.cancelAmount()))
 				.isEqualByComparingTo(statement.grossAmount());
+	}
+
+	@Test
+	void settlementBatchApiAccumulatesNewSalesIntoSameDraftStatement() throws Exception {
+		String firstOrderNo = unique("ORDER-SETTLEMENT-API-FIRST");
+		PaymentApproveResponse firstApproved = paymentApproveService.approvePayment(
+				approveRequest(firstOrderNo, new BigDecimal("12000"), "APPROVE-" + firstOrderNo));
+		paymentCancelService.cancelPaymentBridge(
+				firstApproved.paymentId(), cancelRequest(new BigDecimal("3000"), "CANCEL-" + firstOrderNo));
+
+		JsonNode first = objectMapper.readTree(mockMvc.perform(post("/admin/api/settlements/batch/run")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isOk())
+				.andReturn()
+				.getResponse()
+				.getContentAsString());
+
+		String secondOrderNo = unique("ORDER-SETTLEMENT-API-SECOND");
+		paymentApproveService.approvePayment(
+				approveRequest(secondOrderNo, new BigDecimal("8000"), "APPROVE-" + secondOrderNo));
+
+		JsonNode recalculated = objectMapper.readTree(mockMvc.perform(post("/admin/api/settlements/batch/run")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isOk())
+				.andReturn()
+				.getResponse()
+				.getContentAsString());
+
+		assertThat(recalculated.get("id").asLong()).isEqualTo(first.get("id").asLong());
+		assertThat(recalculated.get("saleAmount").decimalValue())
+				.isEqualByComparingTo(first.get("saleAmount").decimalValue().add(new BigDecimal("8000")));
+		assertThat(recalculated.get("cancelAmount").decimalValue())
+				.isEqualByComparingTo(first.get("cancelAmount").decimalValue());
+		assertThat(recalculated.get("grossAmount").decimalValue())
+				.isEqualByComparingTo(first.get("grossAmount").decimalValue().add(new BigDecimal("8000")));
 	}
 
 	@Test

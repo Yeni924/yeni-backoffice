@@ -1146,7 +1146,7 @@
         }
         .reveal.delayed { animation-delay: .08s; }
         .table-wrap { animation: fadeUp .62s var(--ease-out) .14s both; }
-        .overview-grid, #operations .table-wrap, #scope .table-wrap, #workflow .plain-panel, #workflow .workflow-list { animation: fadeUp .62s var(--ease-out) both; }
+        .overview-grid, #operations .ops-accordion, #scope .table-wrap, #workflow .plain-panel, #workflow .workflow-list { animation: fadeUp .62s var(--ease-out) both; }
 
         tbody tr {
             animation: rowIn .42s var(--ease-out) both;
@@ -1370,4 +1370,99 @@
             /* 개발흐름 workflow */
             .workflow-step { padding: 14px; }
             .workflow-step strong { font-size: 13px; }
+        }
+
+        /* ── 실무경험 아코디언 ── */
+        .ops-accordion { display: grid; gap: 8px; }
+        .acc-item {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: #fff;
+            overflow: hidden;
+            transition: border-color .2s var(--ease-out), box-shadow .2s var(--ease-out);
+        }
+        .acc-item.open {
+            border-color: var(--primary-line);
+            box-shadow: 0 6px 24px rgba(111, 92, 255, .07);
+        }
+        .acc-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 20px;
+            border: 0;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+            transition: background .15s var(--ease-out);
+        }
+        .acc-header:hover { background: #fafbfc; }
+        .acc-item.open .acc-header { background: transparent; }
+        .acc-num {
+            flex: none;
+            color: var(--primary);
+            font-size: 11.5px;
+            font-weight: 800;
+            min-width: 22px;
+            letter-spacing: .02em;
+        }
+        .acc-title {
+            flex: 1;
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 760;
+            letter-spacing: -0.025em;
+            word-break: keep-all;
+        }
+        .acc-arrow {
+            flex: none;
+            color: var(--muted);
+            font-size: 13px;
+            transition: transform .22s var(--ease-out);
+        }
+        .acc-item.open .acc-arrow { transform: rotate(180deg); }
+        .acc-body {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows .28s var(--ease-out);
+        }
+        .acc-item.open .acc-body { grid-template-rows: 1fr; }
+        .acc-inner {
+            overflow: hidden;
+            padding: 0 20px;
+            padding-bottom: 0;
+            transition: padding-bottom .28s var(--ease-out);
+        }
+        .acc-item.open .acc-inner { padding-bottom: 20px; }
+        .acc-cols {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            border-top: 1px solid var(--line-soft);
+            padding-top: 16px;
+        }
+        .acc-col-label {
+            margin-bottom: 7px;
+            color: var(--primary);
+            font-size: 10.5px;
+            font-weight: 800;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+        .acc-col p {
+            margin: 0;
+            color: var(--sub);
+            font-size: 13px;
+            line-height: 1.7;
+            word-break: keep-all;
+        }
+        @media (max-width: 900px) {
+            .acc-cols { grid-template-columns: 1fr; gap: 12px; }
+        }
+        @media (max-width: 768px) {
+            .acc-title { font-size: 14px; }
+            .acc-header { padding: 15px 16px; }
+            .acc-inner { padding: 0 16px; }
+            .acc-item.open .acc-inner { padding-bottom: 16px; }
         }
