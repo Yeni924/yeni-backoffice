@@ -32,7 +32,7 @@ public class SettlementOperationRestController {
     }
 
     @PostMapping("/batch/run")
-    @Operation(summary = "일별 정산 배치 실행", description = "미정산 매출을 기준으로 정산 초안을 생성합니다.")
+    @Operation(summary = "일별 정산 초안 생성/재계산", description = "미정산 매출을 기준으로 정산 초안을 생성하고, 같은 날짜의 DRAFT 명세가 있으면 새 거래를 누적해 재계산합니다.")
     public ResponseEntity<SettlementStatementResponse> runBatch(@Valid @RequestBody(required = false) SettlementBatchRunRequest request) {
         return ResponseEntity.ok(settlementOperationService.runDailySettlement(request));
     }

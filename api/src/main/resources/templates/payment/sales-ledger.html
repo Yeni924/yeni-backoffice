@@ -47,8 +47,9 @@
                         <p class="table-caption">영업일, 거래유형, 원장상태, 정산상태, 검색어로 매출 원장을 조회합니다. 상세 버튼을 누르면 결제, 취소, 원 SALE, 외부전송, 알림톡, 복구 작업, 정산 상세 연결을 영수증 형태로 확인할 수 있습니다.</p>
                     </div>
                 </div>
-                <div class="filter-section-label">빠른 필터</div>
-                <div class="quick-filter-row">
+                <div class="quick-filter-toolbar">
+                    <span>빠른 필터</span>
+                    <div class="quick-filter-row">
                     <button type="button" data-quick-filter="all">전체</button>
                     <button type="button" data-quick-filter="SALE">SALE</button>
                     <button type="button" data-quick-filter="CANCEL">CANCEL</button>
@@ -56,8 +57,8 @@
                     <button type="button" data-quick-filter="SETTLED">정산확정</button>
                     <button type="button" data-quick-filter="CARRIED_OVER">다음정산차감</button>
                     <button type="button" data-quick-filter="EXCLUDED">정산제외</button>
+                    </div>
                 </div>
-                <div class="filter-section-label">상세 조건</div>
                 <div class="table-filter-bar sales-filter">
                     <label>시작일 <input id="salesStartDate" type="date" /></label>
                     <label>종료일 <input id="salesEndDate" type="date" /></label>

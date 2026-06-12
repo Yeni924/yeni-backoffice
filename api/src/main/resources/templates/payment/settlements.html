@@ -23,13 +23,16 @@
                     <h2>일별 정산 명세</h2>
                     <p>매출 원장 화면의 총액은 고객 결제/취소 기준 금액입니다. 실제 정산 예정금액은 SALE/CANCEL 원장을 기준으로 순매출을 계산하고, PG 수수료, 수수료 VAT, 정액 수수료, 조정금, 다음정산차감액을 반영해 산출합니다.</p>
                 </div>
-                <button class="btn btn-primary" id="runSettlementPageBtn" type="button">오늘 정산 배치 실행</button>
+                <button class="btn btn-primary" id="runSettlementPageBtn" type="button">오늘 정산 초안 생성/재계산</button>
             </div>
 
             <section class="operator-note">
-                <h3>매출 원장과 정산의 차이</h3>
-                <p>정산은 payment 테이블을 직접 집계하지 않고 SALE/CANCEL 매출 원장을 기준으로 계산합니다. 정산명세가 확정되면 재계산하지 않고, 지급완료 후에는 기존 정산명세를 수정하지 않습니다. 지급완료 이후 발생한 취소는 기존 명세를 되돌리지 않고 다음 정산 배치 대상 또는 다음정산차감 시나리오로 관리합니다.</p>
+                <h3>오늘 정산 초안 처리 기준</h3>
+                <p>오늘 작성중(DRAFT) 명세가 있으면 새로 들어온 미정산 SALE/CANCEL을 기존 명세에 누적하고 전체 금액을 재계산합니다. 정산확정 또는 지급완료 명세는 변경하지 않으며, 이후 발생한 거래는 다음 정산 대상으로 남깁니다.</p>
             </section>
+            <div class="settlement-run-feedback" id="settlementRunFeedback" aria-live="polite">
+                결제와 취소를 매출 원장에서 확인한 뒤 실행하면 오늘 정산 초안을 생성하거나 재계산합니다.
+            </div>
 
             <section class="metric-grid settlement-summary-grid">
                 <div><span>총 SALE 금액</span><strong id="settlementSaleAmount">0원</strong></div>
