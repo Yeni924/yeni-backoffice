@@ -131,6 +131,20 @@ H2 Demo DB / MySQL profile
   -> 결과불명: CANCEL_UNKNOWN + RecoveryTask
 ```
 
+#### 부분취소 동시성 방어
+
+부분취소는 `PaymentTransaction` PK로 조회하면서 `PESSIMISTIC_WRITE` lock을 적용합니다. 이 lock은
+`payment_transaction` 테이블 전체가 아니라 해당 payment row 하나에 적용되며, 같은 결제에 동시
+부분취소가 들어오면 앞선 트랜잭션 커밋 후 갱신된 취소 가능 금액을 다시 검증합니다.
+
+통합 테스트에서는 승인금액 10,000원 결제에 8,000원 부분취소 두 건을 동시에 요청해 한 건만
+성공하고, 최종 취소금액과 CANCEL 원장이 승인금액을 초과하지 않는 것을 확인했습니다. 서로 다른
+payment row의 동시 부분취소는 각각 정상 반영되는 것도 함께 검증했습니다.
+
+> 현재 테스트는 H2 환경에서 최종 데이터 정합성을 검증합니다. 실제 운영 DB에서는 외부 PG 호출이
+> 길어지는 동안 DB lock을 오래 유지하지 않도록 취소 요청 선점, PG 호출, 결과 확정 트랜잭션을
+> 분리하는 구조로 확장할 수 있습니다.
+
 ### 매출 원장
 
 - 승인 성공 거래는 `SALE` 양수 원장으로 기록합니다.
@@ -186,6 +200,8 @@ H2 Demo DB / MySQL profile
 - 동일 Idempotency Key 중복 승인·취소 시 기존 결과 반환
 - 부분취소 성공 후 `PaymentCancel`과 CANCEL 음수 원장 생성
 - 취소 가능 금액 초과 요청 차단
+- 같은 payment row 동시 부분취소 시 승인금액 초과 방어
+- 서로 다른 payment row 동시 부분취소의 독립 처리
 - 승인 결과불명 시 SALE 미생성 및 RecoveryTask 생성
 - 취소 결과불명 시 CANCEL 원장 미생성
 - 같은 날짜·MID 정산 중복 생성 방어
@@ -199,7 +215,6 @@ H2 Demo DB / MySQL profile
 
 ### 보강 예정
 
-- 동시 부분취소 통합 테스트
 - RecoveryTask 동시 재처리 claim 테스트
 - 100만 건 기준 매출 원장·정산 조회 성능 테스트
 
