@@ -61,7 +61,7 @@ Java 입문 문법을 나열하는 대신, 기존 실무 도메인을 Spring MVC
 - Mock PG 승인·취소
 - 중복 승인·취소 방어
 - 부분취소 및 결과불명 처리
-- RecoveryTask 운영 조회와 일부 유형의 재처리 기반
+- RecoveryTask 운영 조회, 조건부 claim 기반 중복 재처리 방어와 일부 유형 재처리
 - SALE/CANCEL 매출 원장
 - 외부전송·알림톡 Queue 생성 및 상태 관리
 - 정산 초안·확정·지급 상태 전이
@@ -72,11 +72,16 @@ Java 입문 문법을 나열하는 대신, 기존 실무 도메인을 Spring MVC
 실제 운영 DB의 lock wait 동작에는 차이가 있을 수 있어, 운영 확장 시에는 실제 DB 기반 통합 테스트와
 외부 PG 호출 구간의 트랜잭션 분리를 추가로 검토합니다.
 
+RecoveryTask 재처리는 `READY`와 `FAILED` 상태만 조건부 업데이트로 `PROCESSING` claim합니다.
+동일 작업의 동시 재처리 요청 중 하나만 실제 로직을 수행하며, 실패 시에는 별도 트랜잭션에서 실패 사유와
+`FAILED` 상태를 저장해 `PROCESSING` 고착을 방지합니다. 현재 자동 재처리는 `APPROVE_UNKNOWN_CHECK`
+유형을 지원하고, 나머지 유형은 미지원 사유를 명확히 기록합니다.
+
 ### 운영 환경 확장 필요
 
 - 실제 PG·알림톡·외부 시스템 연동
 - 역할 기반 권한, CSRF, CORS, IP allowlist, 감사 로그 정책
-- RecoveryTask 동시 claim 및 자동 재처리 Worker
+- RecoveryTask 자동 재처리 Worker
 - 정산 후 취소 자동 차감
 - 영업일·셀러별 정산
 - 자동 재처리 Worker

@@ -32,6 +32,7 @@ import com.yeni.backoffice.core.payment.repository.SettlementStatementRepository
 import com.yeni.backoffice.core.payment.service.PaymentApproveService;
 import com.yeni.backoffice.core.payment.service.PaymentCancelService;
 import com.yeni.backoffice.core.payment.service.PaymentQueryService;
+import com.yeni.backoffice.core.payment.service.PaymentRecoveryOperationService;
 import com.yeni.backoffice.core.payment.service.PaymentRecoveryService;
 import com.yeni.backoffice.core.payment.service.SalesLedgerService;
 import com.yeni.backoffice.core.payment.service.SettlementOperationService;
@@ -88,6 +89,9 @@ class YeniBackofficeApplicationTests {
 
 	@Autowired
 	private PaymentRecoveryService paymentRecoveryService;
+
+	@Autowired
+	private PaymentRecoveryOperationService paymentRecoveryOperationService;
 
 	@Autowired
 	private SalesLedgerService salesLedgerService;
@@ -573,6 +577,100 @@ class YeniBackofficeApplicationTests {
 	}
 
 	@Test
+	void concurrentRecoveryRetryIsClaimedOnce() throws Exception {
+		String orderNo = unique("UNKNOWN-RECOVERABLE-CONC");
+		PaymentApproveResponse response = paymentApproveService.approvePayment(
+				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
+		Long taskId = recoveryTaskRepository.findByTaskKey("APPROVE_UNKNOWN-" + orderNo).orElseThrow().getId();
+
+		ConcurrentRetryResult result = runConcurrentRecoveryRetries(taskId);
+
+		assertThat(result.successCount()).isEqualTo(1);
+		assertThat(result.businessFailureCount()).isEqualTo(1);
+		assertThat(result.unexpectedFailureCount()).isZero();
+		assertThat(recoveryTaskRepository.findById(taskId).orElseThrow().getStatus()).isEqualTo(RecoveryStatus.SUCCESS);
+
+		List<SalesTransaction> saleLedgers = salesRepository.findAll().stream()
+				.filter(sales -> orderNo.equals(sales.getOrderNo()) && SaleType.SALE.equals(sales.getSaleType()))
+				.toList();
+		assertThat(saleLedgers).hasSize(1);
+		assertThat(externalSendRequestRepository.findBySalesIdOrderByIdAsc(saleLedgers.get(0).getId())).hasSize(1);
+		assertThat(alimtalkQueueRepository.findBySalesIdOrderByIdAsc(saleLedgers.get(0).getId())).hasSize(1);
+		assertThat(paymentRepository.findById(response.paymentId()).orElseThrow().getPaymentStatus())
+				.isEqualTo(PaymentStatus.APPROVED);
+	}
+
+	@Test
+	void retryProcessingTaskIsRejected() {
+		String orderNo = unique("UNKNOWN-PROCESSING");
+		paymentApproveService.approvePayment(approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
+		var task = recoveryTaskRepository.findByTaskKey("APPROVE_UNKNOWN-" + orderNo).orElseThrow();
+		task.markProcessing();
+		recoveryTaskRepository.saveAndFlush(task);
+
+		assertThatThrownBy(() -> paymentRecoveryOperationService.retry(task.getId()))
+				.isInstanceOfSatisfying(BusinessException.class, exception ->
+						assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.RECOVERY_TASK_NOT_CLAIMABLE));
+		assertThat(recoveryTaskRepository.findById(task.getId()).orElseThrow().getStatus())
+				.isEqualTo(RecoveryStatus.PROCESSING);
+	}
+
+	@Test
+	void retrySuccessTaskIsRejected() {
+		String orderNo = unique("UNKNOWN-RECOVERABLE-OK");
+		PaymentApproveResponse response = paymentApproveService.approvePayment(
+				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
+		var task = recoveryTaskRepository.findByTaskKey("APPROVE_UNKNOWN-" + orderNo).orElseThrow();
+		paymentQueryService.retryQuery(response.paymentId());
+
+		assertThatThrownBy(() -> paymentRecoveryOperationService.retry(task.getId()))
+				.isInstanceOfSatisfying(BusinessException.class, exception ->
+						assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.RECOVERY_TASK_NOT_CLAIMABLE));
+		assertThat(recoveryTaskRepository.findById(task.getId()).orElseThrow().getStatus())
+				.isEqualTo(RecoveryStatus.SUCCESS);
+	}
+
+	@Test
+	void retryFailedTaskCanBeClaimedAgain() {
+		String orderNo = unique("UNKNOWN-RECOVERABLE-FAIL");
+		PaymentApproveResponse response = paymentApproveService.approvePayment(
+				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
+		var task = recoveryTaskRepository.findByTaskKey("APPROVE_UNKNOWN-" + orderNo).orElseThrow();
+		task.markFailed("이전 재처리 실패");
+		recoveryTaskRepository.saveAndFlush(task);
+
+		var retried = paymentRecoveryOperationService.retry(task.getId());
+
+		assertThat(retried.status()).isEqualTo(RecoveryStatus.SUCCESS.name());
+		assertThat(recoveryTaskRepository.findById(task.getId()).orElseThrow().getStatus())
+				.isEqualTo(RecoveryStatus.SUCCESS);
+		assertThat(paymentRepository.findById(response.paymentId()).orElseThrow().getPaymentStatus())
+				.isEqualTo(PaymentStatus.APPROVED);
+	}
+
+	@Test
+	void retryUnsupportedTaskFailsWithoutProcessingStuck() {
+		String orderNo = unique("CANCEL-UNKNOWN-UNSUPPORTED");
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
+				approveRequest(orderNo, new BigDecimal("50000"), "APPROVE-" + orderNo));
+		paymentCancelService.cancelPaymentBridge(
+				approved.paymentId(), cancelRequest(new BigDecimal("10000"), "CANCEL-UNKNOWN-" + orderNo));
+		var task = recoveryTaskRepository.findAll().stream()
+				.filter(candidate -> approved.paymentId().equals(candidate.getPaymentId())
+						&& RecoveryType.CANCEL_UNKNOWN_CHECK.equals(candidate.getRecoveryType()))
+				.findFirst()
+				.orElseThrow();
+
+		assertThatThrownBy(() -> paymentRecoveryOperationService.retry(task.getId()))
+				.isInstanceOfSatisfying(BusinessException.class, exception ->
+						assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.RECOVERY_RETRY_NOT_ALLOWED));
+
+		var failed = recoveryTaskRepository.findById(task.getId()).orElseThrow();
+		assertThat(failed.getStatus()).isEqualTo(RecoveryStatus.FAILED);
+		assertThat(failed.getLastErrorMessage()).contains("자동 재처리를 지원하지 않습니다");
+	}
+
+	@Test
 	void cancelUnknownCreatesRecoveryTaskWithoutCancelSale() {
 		String orderNo = unique("ORDER-CANCEL-UNKNOWN");
 		PaymentApproveResponse approved = paymentApproveService.approvePayment(
@@ -801,6 +899,46 @@ class YeniBackofficeApplicationTests {
 		}
 	}
 
+	private ConcurrentRetryResult runConcurrentRecoveryRetries(Long taskId) throws InterruptedException {
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+		CountDownLatch done = new CountDownLatch(2);
+		AtomicInteger successCount = new AtomicInteger();
+		AtomicInteger businessFailureCount = new AtomicInteger();
+		AtomicInteger unexpectedFailureCount = new AtomicInteger();
+
+		try {
+			for (int i = 0; i < 2; i++) {
+				executor.submit(() -> {
+					try {
+						ready.countDown();
+						start.await();
+						paymentRecoveryOperationService.retry(taskId);
+						successCount.incrementAndGet();
+					} catch (BusinessException exception) {
+						businessFailureCount.incrementAndGet();
+					} catch (Exception exception) {
+						unexpectedFailureCount.incrementAndGet();
+					} finally {
+						done.countDown();
+					}
+				});
+			}
+
+			assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+			assertThat(done.await(10, TimeUnit.SECONDS)).isTrue();
+			return new ConcurrentRetryResult(
+					successCount.get(),
+					businessFailureCount.get(),
+					unexpectedFailureCount.get()
+			);
+		} finally {
+			executor.shutdownNow();
+		}
+	}
+
 	private void submitCancel(
 			ExecutorService executor,
 			CountDownLatch ready,
@@ -836,5 +974,8 @@ class YeniBackofficeApplicationTests {
 	}
 
 	private record ConcurrentCancelResult(int successCount, int failureCount) {
+	}
+
+	private record ConcurrentRetryResult(int successCount, int businessFailureCount, int unexpectedFailureCount) {
 	}
 }
