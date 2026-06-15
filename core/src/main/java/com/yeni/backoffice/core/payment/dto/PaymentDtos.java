@@ -279,7 +279,9 @@ public final class PaymentDtos {
             String targetSystem,
             String sendStatus,
             Integer retryCount,
+            Integer maxRetryCount,
             String lastErrorMessage,
+            LocalDateTime processingStartedAt,
             LocalDateTime lastSentAt
     ) {
         public static ExternalSendResponse from(ExternalSendRequest request) {
@@ -290,7 +292,9 @@ public final class PaymentDtos {
                     request.getTargetSystem(),
                     request.getSendStatus().name(),
                     request.getRetryCount(),
+                    request.getMaxRetryCount(),
                     request.getLastErrorMessage(),
+                    request.getProcessingStartedAt(),
                     request.getLastSentAt()
             );
         }
@@ -305,7 +309,9 @@ public final class PaymentDtos {
             String eventType,
             String status,
             Integer retryCount,
+            Integer maxRetryCount,
             String lastErrorMessage,
+            LocalDateTime processingStartedAt,
             LocalDateTime sentAt
     ) {
         public static AlimtalkQueueResponse from(AlimtalkQueue queue) {
@@ -317,7 +323,9 @@ public final class PaymentDtos {
                     queue.getEventType(),
                     queue.getStatus().name(),
                     queue.getRetryCount(),
+                    queue.getMaxRetryCount(),
                     queue.getLastErrorMessage(),
+                    queue.getProcessingStartedAt(),
                     queue.getSentAt()
             );
         }
