@@ -6,6 +6,7 @@
     <title>권예은 백오피스 포트폴리오</title>
     <link rel="stylesheet" th:href="@{/vendor/tabulator/tabulator.min.css}" />
     <link rel="stylesheet" th:href="@{/css/pages/dashboard.css}" />
+    <link rel="stylesheet" th:href="@{/css/scroll-top.css}" />
 </head>
 <body>
 <div class="app">
@@ -35,11 +36,13 @@
 
             <div class="nav-group" data-group="demo">
                 <button class="nav-toggle" type="button" aria-expanded="true">
-                    <span>데모 화면</span>
+                    <span>결제 운영</span>
                     <span class="nav-arrow">▾</span>
                 </button>
                 <div class="nav-items">
                     <a class="nav-link" href="/admin/payment-operations"><span class="nav-icon">PG</span><span class="nav-text">PG Mock 콘솔</span></a>
+                    <a class="nav-link" href="/admin/payment-operations/sales-ledger"><span class="nav-icon">SL</span><span class="nav-text">매출 원장</span></a>
+                    <a class="nav-link" href="/admin/payment-operations/settlements"><span class="nav-icon">ST</span><span class="nav-text">정산 관리</span></a>
                     <a class="nav-link" href="/admin/database-spec"><span class="nav-icon">DB</span><span class="nav-text">DB 명세</span></a>
                     <a class="nav-link" href="/swagger-ui/index.html" target="_blank" rel="noopener"><span class="nav-icon">API</span><span class="nav-text">API 문서</span></a>
                 </div>
@@ -86,7 +89,7 @@
         </header>
 
         <section class="content">
-            <section class="impact-hero reveal" id="projects">
+            <section class="impact-hero reveal-section" id="projects">
                 <div class="impact-copy">
                     <div class="eyebrow">경력 포트폴리오</div>
                     <h2>
@@ -148,18 +151,18 @@
                 </div>
             </section>
 
-            <section class="demo-entry reveal delayed" aria-label="포트폴리오 구현 데모 바로가기">
+            <section class="demo-entry reveal-section" aria-label="포트폴리오 구현 데모 바로가기">
                 <a class="demo-entry-card primary" href="/admin/payment-operations">
                     <span>데모</span>
                     <strong>PG Mock 운영 콘솔</strong>
                     <p>Mock PG 승인/취소/결과불명/망취소와 이후 매출 원장, 외부전송, 알림톡, 복구 작업 흐름을 확인합니다.</p>
                 </a>
-                <a class="demo-entry-card" href="/admin/sales-ledger">
+                <a class="demo-entry-card" href="/admin/payment-operations/sales-ledger">
                     <span>매출 원장</span>
                     <strong>매출 원장 조회</strong>
                     <p>확정된 결제 완료는 SALE, 취소 완료는 CANCEL 음수 거래로 남기고 원매출은 수정하지 않는 구조를 확인합니다.</p>
                 </a>
-                <a class="demo-entry-card" href="/admin/settlements">
+                <a class="demo-entry-card" href="/admin/payment-operations/settlements">
                     <span>정산</span>
                     <strong>정산 관리</strong>
                     <p>payment 테이블이 아니라 SALE/CANCEL 매출 원장을 기준으로 정산 예정금액을 계산하는 흐름을 확인합니다.</p>
@@ -184,7 +187,7 @@
 
             <div class="filter-chips" id="filterChips"></div>
 
-            <div class="table-wrap">
+            <div class="table-wrap table-card reveal-section">
                 <div class="result-meta">
                     <span>등록된 프로젝트 <strong id="resultCount">0</strong>건</span>
                     <span>행을 클릭하면 상세 내용을 확인할 수 있습니다.</span>
@@ -192,15 +195,15 @@
                 <div id="projectTable" class="project-table" aria-label="경력 프로젝트 목록"></div>
             </div>
 
-            <section class="section" id="overview">
+            <section class="section portfolio-section reveal-section" id="overview">
                 <div class="section-head">
                     <div class="section-label">소개</div>
                     <h2>경력 요약</h2>
                     <p>관리자 화면, 연동 API, 결제/매출, 회원/포인트, 알림톡 업무를 다뤄온 경험을 정리했습니다.</p>
                 </div>
 
-                <div class="overview-grid">
-                    <div class="plain-panel">
+                <div class="overview-grid career-summary-grid">
+                    <div class="plain-panel summary-card">
                         <div class="plain-row"><span>이름</span><strong>권예은</strong></div>
                         <div class="plain-row"><span>직무</span><strong>백오피스 / API 서버 개발자</strong></div>
                         <div class="plain-row"><span>주요 경력</span><strong>KG이니시스 · 티쿤글로벌</strong></div>
@@ -210,7 +213,7 @@
                         </div>
                     </div>
 
-                    <div class="plain-panel">
+                    <div class="plain-panel summary-card">
                         <div class="plain-row"><span>주요 기술</span><strong>C# · .NET · MS-SQL · jQuery · Dapper</strong></div>
                         <div class="plain-row"><span>확장 기술</span><strong>Java · Spring Boot · JPA · MySQL</strong></div>
                         <div class="plain-row">
@@ -225,7 +228,7 @@
                 </div>
             </section>
 
-            <section class="section" id="operations">
+            <section class="section portfolio-section reveal-section" id="operations">
                 <div class="section-head">
                     <div class="section-label">실무 경험</div>
                     <h2>실무에서 했던 일</h2>
@@ -393,7 +396,7 @@
                 </div>
             </section>
 
-            <section class="section" id="scope">
+            <section class="section portfolio-section reveal-section" id="scope">
                 <div class="section-head">
                     <div class="section-label">구현 범위</div>
                     <h2>포트폴리오 구현 범위 및 진행 상태</h2>
@@ -402,7 +405,7 @@
                     </p>
                 </div>
 
-                <div class="table-wrap">
+                <div class="table-wrap table-card">
                     <table class="scope-table">
                         <thead>
                         <tr>
@@ -630,7 +633,7 @@
                 </div>
             </section>
 
-            <section class="section" id="workflow">
+            <section class="section portfolio-section reveal-section" id="workflow">
                 <div class="section-head">
                     <div class="section-label">개발 흐름</div>
                     <h2>개발 진행 흐름</h2>
@@ -734,5 +737,6 @@
 </script>
 <script th:src="@{/vendor/tabulator/tabulator.min.js}"></script>
 <script th:src="@{/js/pages/dashboard.js}"></script>
+<script th:src="@{/js/scroll-top.js}"></script>
 </body>
 </html>

@@ -115,6 +115,11 @@
     font-weight: 700;
 }
 
+.nav-group:has(a.active) .nav-group-toggle,
+.nav-group:has(a.active) .nav-title {
+    color: #dbeafe;
+}
+
 .sidebar-footer {
     padding: 16px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);

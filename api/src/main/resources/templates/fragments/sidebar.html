@@ -32,12 +32,20 @@
 </aside>
 <script>
 (function () {
-    var path = window.location.pathname;
+    var aliases = {
+        "/admin/sales-ledger": "/admin/payment-operations/sales-ledger",
+        "/admin/settlements": "/admin/payment-operations/settlements"
+    };
+    var path = aliases[window.location.pathname] || window.location.pathname;
     document.querySelectorAll(".nav a").forEach(function (link) {
         link.classList.remove("active");
         var href = link.getAttribute("href");
         if (href && path === href) {
             link.classList.add("active");
+            var group = link.closest(".nav-group");
+            if (group) {
+                group.dataset.hasActive = "true";
+            }
         }
     });
 })();

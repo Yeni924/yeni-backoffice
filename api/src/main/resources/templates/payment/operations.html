@@ -10,6 +10,7 @@
     <link rel="stylesheet" th:href="@{/css/components.css}" />
     <link rel="stylesheet" th:href="@{/vendor/tabulator/tabulator.min.css}" />
     <link rel="stylesheet" th:href="@{/css/pages/payment-operations.css}" />
+    <link rel="stylesheet" th:href="@{/css/scroll-top.css}" />
 </head>
 <body>
 <div class="layout">
@@ -29,6 +30,11 @@
 
             <div class="demo-notice">
                 이 화면은 포트폴리오 시연을 위한 공개 데모 화면입니다. 실제 운영 환경에서는 관리자 인증, 권한 제어, 감사 로그, IP 제한, CSRF 방어가 필요한 영역입니다.
+            </div>
+
+            <div class="demo-flow-guide">
+                <strong>추천 시연 순서</strong>
+                <span>정상 결제 완료 → 부분취소 → 승인 결과불명 → RecoveryTask 확인 → 정산 생성</span>
             </div>
 
             <nav class="ops-tabs" aria-label="PG 운영 화면">
@@ -259,5 +265,6 @@
 <script th:src="@{/vendor/tabulator/tabulator.min.js}"></script>
 <script th:src="@{/js/common.js}"></script>
 <script th:src="@{/js/pages/payment-operations.js}"></script>
+<script th:src="@{/js/scroll-top.js}"></script>
 </body>
 </html>
