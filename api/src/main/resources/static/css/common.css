@@ -12,9 +12,18 @@ body {
     line-height: 1.6;
 }
 
-p, li, td, th, span, label {
+p, li, td, th, span, label,
+button, input, select, textarea,
+.card, .badge, .nav-link, .table, .tabulator {
     word-break: keep-all;
     overflow-wrap: break-word;
+}
+
+.code-value,
+.trace-id,
+.request-id,
+.idempotency-key {
+    word-break: break-all;
 }
 
 a {

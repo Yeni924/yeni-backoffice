@@ -84,6 +84,24 @@
     line-height: 1.6;
     position: relative;
 }
+
+.demo-flow-guide {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.demo-flow-guide strong {
+    flex: 0 0 auto;
+    color: #1e40af;
+}
 .demo-notice::before {
     content: "⚠";
     position: absolute;
@@ -967,12 +985,25 @@
 }
 
 .tabulator-host {
-    min-height: 360px;
+    min-height: 0;
     padding: 0 20px 20px;
+    background: #ffffff;
 }
 
 .tabulator-host .tabulator {
+    background: #ffffff;
     border-radius: 10px;
+}
+
+.tabulator-host .tabulator-tableholder,
+.tabulator-host .tabulator-placeholder {
+    background: #ffffff;
+}
+
+.tabulator-host .tabulator-placeholder {
+    min-height: 96px;
+    padding: 32px 16px;
+    color: #64748b;
 }
 
 .table-action {
@@ -1011,6 +1042,12 @@
 @media (max-width: 720px) {
     .payment-hero {
         flex-direction: column;
+    }
+
+    .demo-flow-guide {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
     }
 
     .ops-tabs {

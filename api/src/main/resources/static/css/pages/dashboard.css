@@ -373,6 +373,13 @@
             background: #fff;
             overflow: auto;
         }
+        .table-card {
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
+        }
+        .table-card thead th {
+            background: #f8fafc;
+            color: #374151;
+        }
         .result-meta {
             min-height: 42px;
             padding: 0 15px;
@@ -459,6 +466,10 @@
             font-family: inherit;
             font-size: 12.5px;
         }
+        .project-table .tabulator-tableholder,
+        .project-table .tabulator-placeholder {
+            background: #fff;
+        }
         .project-table .tabulator-header {
             border-bottom: 1px solid var(--line-soft);
             background: #fcfcfe;
@@ -534,12 +545,39 @@
             background: #fff;
         }
 
-        .section { margin-top: 34px; scroll-margin-top: 82px; }
-        .section-head { margin-bottom: 12px; }
-        .section-label { color: var(--primary); font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; }
-        .section-head h2 { margin: 5px 0 0; font-size: 16.5px; font-weight: 760; letter-spacing: -0.03em; }
-        .section-head p { margin: 6px 0 0; color: var(--muted); font-size: 12.3px; line-height: 1.55; }
+        .section { margin-top: 36px; scroll-margin-top: 82px; }
+        .portfolio-section {
+            padding: 26px;
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.82);
+        }
+        .section-head { margin-bottom: 20px; }
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .section-label::before {
+            width: 18px;
+            height: 2px;
+            border-radius: 999px;
+            background: var(--primary);
+            content: "";
+        }
+        .section-head h2 { margin: 7px 0 0; font-size: 20px; font-weight: 780; letter-spacing: -0.03em; }
+        .section-head p { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.65; }
         .overview-grid { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr); gap: 16px; }
+        .career-summary-grid { align-items: stretch; }
+        .summary-card {
+            background: #fbfcfe;
+            box-shadow: none;
+        }
         .plain-panel { border: 1px solid var(--line); border-radius: 16px; background: #fff; overflow: hidden; }
         .plain-row { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
         .plain-row:last-child { border-bottom: 0; }
@@ -572,6 +610,14 @@
         .scope-table td {
             word-break: keep-all;
             overflow-wrap: break-word;
+        }
+
+        .code-value,
+        .trace-id,
+        .request-id,
+        .idempotency-key,
+        .url-value {
+            word-break: break-all;
         }
         .scope-excluded td {
             color: #7c8392;
@@ -1141,17 +1187,18 @@
             font-size: 12.5px;
             line-height: 1.55;
         }
-        .reveal {
-            animation: fadeUp .62s var(--ease-out) both;
+        .reveal-section {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity .42s ease, transform .42s ease;
+            will-change: opacity, transform;
         }
-        .reveal.delayed { animation-delay: .08s; }
-        .table-wrap { animation: fadeUp .62s var(--ease-out) .14s both; }
-        .overview-grid, #operations .ops-accordion, #scope .table-wrap, #workflow .plain-panel, #workflow .workflow-list { animation: fadeUp .62s var(--ease-out) both; }
+        .reveal-section.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-        tbody tr {
-            animation: rowIn .42s var(--ease-out) both;
-            animation-delay: calc(var(--row-index, 0) * 45ms);
-        }
+        tbody tr { animation: none; }
         tbody tr:hover td { background: #fbfaff; }
         tbody tr:hover .detail-btn { transform: translateX(4px); color: var(--primary); background: var(--primary-soft); }
         .detail-btn { transition-property: transform, color, background; }
@@ -1255,6 +1302,7 @@
         }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+            .reveal-section { opacity: 1; transform: none; }
         }
 
         .dashboard-loading {
@@ -1331,6 +1379,13 @@
             .demo-entry-card strong { font-size: 15px; word-break: keep-all; }
             .demo-entry-card p { font-size: 12px; word-break: keep-all; line-height: 1.6; }
             .table-wrap { border-radius: 14px; }
+            .portfolio-section {
+                padding: 20px 16px;
+                border-radius: 14px;
+            }
+            .section-head h2 { font-size: 18px; }
+            .section-head p { font-size: 12px; }
+            .career-summary-grid { grid-template-columns: 1fr; }
             .project-table { min-width: 0; }
             .project-table .tabulator-header { display: none; }
             .project-table .tabulator-row {
