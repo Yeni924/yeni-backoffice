@@ -64,10 +64,18 @@ CREATE TABLE IF NOT EXISTS alimtalk_queue (
     event_type VARCHAR(40) NOT NULL,
     status VARCHAR(30) NOT NULL,
     retry_count INTEGER NOT NULL,
+    max_retry_count INTEGER DEFAULT 5 NOT NULL,
     last_error_message VARCHAR(300),
+    processing_started_at TIMESTAMP,
     sent_at TIMESTAMP,
     CONSTRAINT uk_alimtalk_queue_message_key UNIQUE (message_key)
 );
+
+ALTER TABLE IF EXISTS external_send_request
+    ADD COLUMN IF NOT EXISTS max_retry_count INTEGER DEFAULT 5 NOT NULL;
+
+ALTER TABLE IF EXISTS external_send_request
+    ADD COLUMN IF NOT EXISTS processing_started_at TIMESTAMP;
 
 ALTER TABLE IF EXISTS sales_transaction
     ADD COLUMN IF NOT EXISTS payment_id BIGINT;

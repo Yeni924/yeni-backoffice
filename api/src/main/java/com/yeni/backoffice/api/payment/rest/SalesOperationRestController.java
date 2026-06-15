@@ -8,9 +8,13 @@ import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgFeePolicyResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.RecoveryTaskResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesAdjustmentRequest;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.SalesResponse;
+import com.yeni.backoffice.core.payment.dto.WorkerDtos.WorkerRunRequest;
+import com.yeni.backoffice.core.payment.dto.WorkerDtos.WorkerRunResult;
 import com.yeni.backoffice.core.payment.repository.AlimtalkQueueRepository;
 import com.yeni.backoffice.core.payment.repository.PaymentRecoveryTaskRepository;
 import com.yeni.backoffice.core.payment.service.ExternalSendService;
+import com.yeni.backoffice.core.payment.service.ExternalSendWorkerService;
+import com.yeni.backoffice.core.payment.service.AlimtalkWorkerService;
 import com.yeni.backoffice.core.payment.service.PaymentStatisticsService;
 import com.yeni.backoffice.core.payment.service.PgFeePolicyService;
 import com.yeni.backoffice.core.payment.service.SalesLedgerService;
@@ -41,6 +45,8 @@ public class SalesOperationRestController {
     private final PaymentStatisticsService statisticsService;
     private final AlimtalkQueueRepository alimtalkQueueRepository;
     private final PaymentRecoveryTaskRepository recoveryTaskRepository;
+    private final ExternalSendWorkerService externalSendWorkerService;
+    private final AlimtalkWorkerService alimtalkWorkerService;
 
     public SalesOperationRestController(
             SalesLedgerService salesLedgerService,
@@ -48,13 +54,17 @@ public class SalesOperationRestController {
             PgFeePolicyService feePolicyService,
             PaymentStatisticsService statisticsService,
             AlimtalkQueueRepository alimtalkQueueRepository,
-            PaymentRecoveryTaskRepository recoveryTaskRepository) {
+            PaymentRecoveryTaskRepository recoveryTaskRepository,
+            ExternalSendWorkerService externalSendWorkerService,
+            AlimtalkWorkerService alimtalkWorkerService) {
         this.salesLedgerService = salesLedgerService;
         this.externalSendService = externalSendService;
         this.feePolicyService = feePolicyService;
         this.statisticsService = statisticsService;
         this.alimtalkQueueRepository = alimtalkQueueRepository;
         this.recoveryTaskRepository = recoveryTaskRepository;
+        this.externalSendWorkerService = externalSendWorkerService;
+        this.alimtalkWorkerService = alimtalkWorkerService;
     }
 
     @GetMapping("/sales")
@@ -98,6 +108,22 @@ public class SalesOperationRestController {
         return ResponseEntity.ok(alimtalkQueueRepository.findAll().stream()
                 .map(AlimtalkQueueResponse::from)
                 .toList());
+    }
+
+    @PostMapping("/external-send/worker/run")
+    @Operation(summary = "외부전송 Worker 실행", description = "READY/FAILED 외부전송 요청을 Mock Worker로 처리합니다.")
+    public ResponseEntity<WorkerRunResult> runExternalSendWorker(
+            @RequestBody(required = false) WorkerRunRequest request) {
+        int limit = request == null ? 20 : request.normalizedLimit();
+        return ResponseEntity.ok(externalSendWorkerService.processReadyRequests(limit));
+    }
+
+    @PostMapping("/alimtalk/worker/run")
+    @Operation(summary = "알림톡 Worker 실행", description = "READY/FAILED 알림톡 Queue를 Mock Worker로 처리합니다.")
+    public ResponseEntity<WorkerRunResult> runAlimtalkWorker(
+            @RequestBody(required = false) WorkerRunRequest request) {
+        int limit = request == null ? 20 : request.normalizedLimit();
+        return ResponseEntity.ok(alimtalkWorkerService.processReadyMessages(limit));
     }
 
     @GetMapping({"/payment-recovery-tasks", "/recovery"})

@@ -15,6 +15,12 @@
             return cancelPaymentWithKey("CANCEL-" + Date.now());
         });
         bind("refreshBtn", refreshAll);
+        bind("runExternalWorkerBtn", function () {
+            return runWorker("/api/admin/external-send/worker/run", "외부전송");
+        });
+        bind("runAlimtalkWorkerBtn", function () {
+            return runWorker("/api/admin/alimtalk/worker/run", "알림톡");
+        });
         bind("approveUnknownBtn", runApproveUnknown);
         bind("cancelUnknownBtn", function () {
             return cancelPaymentWithKey("CANCEL-UNKNOWN-" + Date.now());
@@ -250,6 +256,19 @@
         tables.external.setData(externalRequests);
         tables.alimtalk.setData(alimtalkQueues);
         tables.recovery.setData(recoveryTasks.data || []);
+    }
+
+    async function runWorker(url, label) {
+        try {
+            const result = await postJson(url, {limit: 20});
+            setMessage(label + " Worker 처리 완료: 대상 " + result.targetCount
+                + "건 / 성공 " + result.successCount
+                + "건 / 실패 " + result.failureCount
+                + "건 / 건너뜀 " + result.skippedCount + "건");
+            await refreshAll();
+        } catch (error) {
+            setMessage(error.message);
+        }
     }
 
     function renderScenarioResult(result) {

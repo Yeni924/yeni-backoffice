@@ -51,15 +51,27 @@ public class AlimtalkQueue extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer retryCount;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer maxRetryCount = 5;
+
     @Column(length = 300)
     private String lastErrorMessage;
 
+    private LocalDateTime processingStartedAt;
+
     private LocalDateTime sentAt;
+
+    public void markSending(LocalDateTime now) {
+        this.status = AlimtalkStatus.SENDING;
+        this.processingStartedAt = now;
+    }
 
     public void markFailed(String errorMessage) {
         this.status = AlimtalkStatus.FAILED;
         this.retryCount = this.retryCount + 1;
         this.lastErrorMessage = errorMessage;
+        this.processingStartedAt = null;
         this.sentAt = LocalDateTime.now();
     }
 
@@ -70,6 +82,7 @@ public class AlimtalkQueue extends BaseTimeEntity {
     public void markSuccess() {
         this.status = AlimtalkStatus.SUCCESS;
         this.lastErrorMessage = null;
+        this.processingStartedAt = null;
         this.sentAt = LocalDateTime.now();
     }
 }
