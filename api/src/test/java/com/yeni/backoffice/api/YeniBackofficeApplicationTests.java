@@ -22,6 +22,11 @@ import com.yeni.backoffice.core.payment.enums.SaleType;
 import com.yeni.backoffice.core.payment.enums.LedgerStatus;
 import com.yeni.backoffice.core.payment.enums.SalesSettlementStatus;
 import com.yeni.backoffice.core.payment.entity.SalesTransaction;
+import com.yeni.backoffice.core.payment.entity.ExternalSendRequest;
+import com.yeni.backoffice.core.payment.entity.AlimtalkQueue;
+import com.yeni.backoffice.core.payment.dto.WorkerDtos.WorkerRunResult;
+import com.yeni.backoffice.core.payment.enums.ExternalSendStatus;
+import com.yeni.backoffice.core.payment.enums.AlimtalkStatus;
 import com.yeni.backoffice.core.payment.repository.AlimtalkQueueRepository;
 import com.yeni.backoffice.core.payment.repository.ExternalSendRequestRepository;
 import com.yeni.backoffice.core.payment.repository.PaymentCancelRepository;
@@ -36,6 +41,8 @@ import com.yeni.backoffice.core.payment.service.PaymentRecoveryOperationService;
 import com.yeni.backoffice.core.payment.service.PaymentRecoveryService;
 import com.yeni.backoffice.core.payment.service.SalesLedgerService;
 import com.yeni.backoffice.core.payment.service.SettlementOperationService;
+import com.yeni.backoffice.core.payment.service.ExternalSendWorkerService;
+import com.yeni.backoffice.core.payment.service.AlimtalkWorkerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -55,6 +62,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -116,6 +124,12 @@ class YeniBackofficeApplicationTests {
 
 	@Autowired
 	private AlimtalkQueueRepository alimtalkQueueRepository;
+
+	@Autowired
+	private ExternalSendWorkerService externalSendWorkerService;
+
+	@Autowired
+	private AlimtalkWorkerService alimtalkWorkerService;
 
 	@Autowired
 	private SettlementStatementRepository settlementStatementRepository;
@@ -855,6 +869,108 @@ class YeniBackofficeApplicationTests {
 		assertThat(links.alimtalkQueues()).hasSize(1);
 	}
 
+	@Test
+	void processReadyExternalSendRequestSuccess() {
+		completeExistingFollowUpQueues();
+		ExternalSendRequest request = saveExternalSend("WORKER-OK-" + UUID.randomUUID(), ExternalSendStatus.READY, 0, 5);
+
+		WorkerRunResult result = externalSendWorkerService.processReadyRequests(10);
+
+		assertThat(result.successCount()).isEqualTo(1);
+		assertThat(externalSendRequestRepository.findById(request.getId()).orElseThrow().getSendStatus())
+				.isEqualTo(ExternalSendStatus.SUCCESS);
+	}
+
+	@Test
+	void processReadyExternalSendRequestFailure() {
+		completeExistingFollowUpQueues();
+		ExternalSendRequest request = saveExternalSend("WORKER-FAIL-" + UUID.randomUUID(), ExternalSendStatus.READY, 0, 5);
+
+		WorkerRunResult result = externalSendWorkerService.processReadyRequests(10);
+
+		var failed = externalSendRequestRepository.findById(request.getId()).orElseThrow();
+		assertThat(result.failureCount()).isEqualTo(1);
+		assertThat(failed.getSendStatus()).isEqualTo(ExternalSendStatus.FAILED);
+		assertThat(failed.getRetryCount()).isEqualTo(1);
+		assertThat(failed.getLastErrorMessage()).isNotBlank();
+	}
+
+	@Test
+	void concurrentExternalSendWorkerClaimsOnce() throws Exception {
+		completeExistingFollowUpQueues();
+		ExternalSendRequest request = saveExternalSend("WORKER-CONCURRENT-" + UUID.randomUUID(), ExternalSendStatus.READY, 0, 5);
+
+		ConcurrentWorkerResult result = runConcurrentWorkers(() -> externalSendWorkerService.processReadyRequests(10));
+
+		assertThat(result.claimedCount()).isEqualTo(1);
+		assertThat(result.successCount()).isEqualTo(1);
+		assertThat(externalSendRequestRepository.findById(request.getId()).orElseThrow().getSendStatus())
+				.isEqualTo(ExternalSendStatus.SUCCESS);
+	}
+
+	@Test
+	void externalSendRetryLimitExceededIsSkipped() {
+		completeExistingFollowUpQueues();
+		ExternalSendRequest request = saveExternalSend("WORKER-LIMIT-" + UUID.randomUUID(), ExternalSendStatus.FAILED, 5, 5);
+
+		WorkerRunResult result = externalSendWorkerService.processReadyRequests(10);
+
+		assertThat(result.claimedCount()).isZero();
+		assertThat(externalSendRequestRepository.findById(request.getId()).orElseThrow().getSendStatus())
+				.isEqualTo(ExternalSendStatus.FAILED);
+	}
+
+	@Test
+	void processReadyAlimtalkMessageSuccess() {
+		completeExistingFollowUpQueues();
+		AlimtalkQueue queue = saveAlimtalk("WORKER-OK-" + UUID.randomUUID(), AlimtalkStatus.READY, 0, 5);
+
+		WorkerRunResult result = alimtalkWorkerService.processReadyMessages(10);
+
+		assertThat(result.successCount()).isEqualTo(1);
+		assertThat(alimtalkQueueRepository.findById(queue.getId()).orElseThrow().getStatus())
+				.isEqualTo(AlimtalkStatus.SUCCESS);
+	}
+
+	@Test
+	void processReadyAlimtalkMessageFailure() {
+		completeExistingFollowUpQueues();
+		AlimtalkQueue queue = saveAlimtalk("WORKER-FAIL-" + UUID.randomUUID(), AlimtalkStatus.READY, 0, 5);
+
+		WorkerRunResult result = alimtalkWorkerService.processReadyMessages(10);
+
+		var failed = alimtalkQueueRepository.findById(queue.getId()).orElseThrow();
+		assertThat(result.failureCount()).isEqualTo(1);
+		assertThat(failed.getStatus()).isEqualTo(AlimtalkStatus.FAILED);
+		assertThat(failed.getRetryCount()).isEqualTo(1);
+		assertThat(failed.getLastErrorMessage()).isNotBlank();
+	}
+
+	@Test
+	void concurrentAlimtalkWorkerClaimsOnce() throws Exception {
+		completeExistingFollowUpQueues();
+		AlimtalkQueue queue = saveAlimtalk("WORKER-CONCURRENT-" + UUID.randomUUID(), AlimtalkStatus.READY, 0, 5);
+
+		ConcurrentWorkerResult result = runConcurrentWorkers(() -> alimtalkWorkerService.processReadyMessages(10));
+
+		assertThat(result.claimedCount()).isEqualTo(1);
+		assertThat(result.successCount()).isEqualTo(1);
+		assertThat(alimtalkQueueRepository.findById(queue.getId()).orElseThrow().getStatus())
+				.isEqualTo(AlimtalkStatus.SUCCESS);
+	}
+
+	@Test
+	void alimtalkRetryLimitExceededIsSkipped() {
+		completeExistingFollowUpQueues();
+		AlimtalkQueue queue = saveAlimtalk("WORKER-LIMIT-" + UUID.randomUUID(), AlimtalkStatus.FAILED, 5, 5);
+
+		WorkerRunResult result = alimtalkWorkerService.processReadyMessages(10);
+
+		assertThat(result.claimedCount()).isZero();
+		assertThat(alimtalkQueueRepository.findById(queue.getId()).orElseThrow().getStatus())
+				.isEqualTo(AlimtalkStatus.FAILED);
+	}
+
 	private PaymentApproveRequest approveRequest(String orderNo, BigDecimal amount, String idempotencyKey) {
 		return new PaymentApproveRequest(
 				PgProvider.MOCK,
@@ -939,6 +1055,71 @@ class YeniBackofficeApplicationTests {
 		}
 	}
 
+	private ConcurrentWorkerResult runConcurrentWorkers(Supplier<WorkerRunResult> worker) throws InterruptedException {
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+		CountDownLatch done = new CountDownLatch(2);
+		AtomicInteger claimedCount = new AtomicInteger();
+		AtomicInteger successCount = new AtomicInteger();
+
+		try {
+			for (int i = 0; i < 2; i++) {
+				executor.submit(() -> {
+					try {
+						ready.countDown();
+						start.await();
+						WorkerRunResult result = worker.get();
+						claimedCount.addAndGet(result.claimedCount());
+						successCount.addAndGet(result.successCount());
+					} catch (InterruptedException exception) {
+						Thread.currentThread().interrupt();
+					} finally {
+						done.countDown();
+					}
+				});
+			}
+			assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+			assertThat(done.await(10, TimeUnit.SECONDS)).isTrue();
+			return new ConcurrentWorkerResult(claimedCount.get(), successCount.get());
+		} finally {
+			executor.shutdownNow();
+		}
+	}
+
+	private void completeExistingFollowUpQueues() {
+		var externalRequests = externalSendRequestRepository.findAll();
+		externalRequests.forEach(ExternalSendRequest::markSuccess);
+		externalSendRequestRepository.saveAllAndFlush(externalRequests);
+
+		var alimtalkQueues = alimtalkQueueRepository.findAll();
+		alimtalkQueues.forEach(AlimtalkQueue::markSuccess);
+		alimtalkQueueRepository.saveAllAndFlush(alimtalkQueues);
+	}
+
+	private ExternalSendRequest saveExternalSend(String requestKey, ExternalSendStatus status, int retryCount, int maxRetryCount) {
+		return externalSendRequestRepository.saveAndFlush(ExternalSendRequest.builder()
+				.salesId(1L)
+				.requestKey(requestKey)
+				.targetSystem("SALES_OPERATION_MOCK")
+				.sendStatus(status)
+				.retryCount(retryCount)
+				.maxRetryCount(maxRetryCount)
+				.build());
+	}
+
+	private AlimtalkQueue saveAlimtalk(String messageKey, AlimtalkStatus status, int retryCount, int maxRetryCount) {
+		return alimtalkQueueRepository.saveAndFlush(AlimtalkQueue.builder()
+				.paymentId(1L)
+				.messageKey(messageKey)
+				.eventType("APPROVE")
+				.status(status)
+				.retryCount(retryCount)
+				.maxRetryCount(maxRetryCount)
+				.build());
+	}
+
 	private void submitCancel(
 			ExecutorService executor,
 			CountDownLatch ready,
@@ -977,5 +1158,8 @@ class YeniBackofficeApplicationTests {
 	}
 
 	private record ConcurrentRetryResult(int successCount, int businessFailureCount, int unexpectedFailureCount) {
+	}
+
+	private record ConcurrentWorkerResult(int claimedCount, int successCount) {
 	}
 }

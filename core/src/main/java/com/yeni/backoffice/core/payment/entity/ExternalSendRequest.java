@@ -49,14 +49,26 @@ public class ExternalSendRequest extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer retryCount;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer maxRetryCount = 5;
+
     @Column(length = 200)
     private String lastErrorMessage;
 
+    private LocalDateTime processingStartedAt;
+
     private LocalDateTime lastSentAt;
+
+    public void markSending(LocalDateTime now) {
+        this.sendStatus = ExternalSendStatus.SENDING;
+        this.processingStartedAt = now;
+    }
 
     public void markSuccess() {
         this.sendStatus = ExternalSendStatus.SUCCESS;
         this.lastSentAt = LocalDateTime.now();
+        this.processingStartedAt = null;
         this.lastErrorMessage = null;
     }
 
@@ -64,6 +76,7 @@ public class ExternalSendRequest extends BaseTimeEntity {
         this.sendStatus = ExternalSendStatus.FAILED;
         this.retryCount = this.retryCount + 1;
         this.lastSentAt = LocalDateTime.now();
+        this.processingStartedAt = null;
         this.lastErrorMessage = errorMessage;
     }
 }
