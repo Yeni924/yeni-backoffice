@@ -25,17 +25,25 @@ import java.util.List;
 @Service
 public class PaymentRecoveryOperationService {
 
+    private static final int AUDIT_REFERENCE_KEY_MAX_LENGTH = 80;
+
     private final PaymentRecoveryTaskRepository recoveryTaskRepository;
     private final PaymentQueryService paymentQueryService;
     private final AuditLogRepository auditLogRepository;
+    private final RecoveryTaskClaimService recoveryTaskClaimService;
+    private final RecoveryTaskStateService recoveryTaskStateService;
 
     public PaymentRecoveryOperationService(
             PaymentRecoveryTaskRepository recoveryTaskRepository,
             PaymentQueryService paymentQueryService,
-            AuditLogRepository auditLogRepository) {
+            AuditLogRepository auditLogRepository,
+            RecoveryTaskClaimService recoveryTaskClaimService,
+            RecoveryTaskStateService recoveryTaskStateService) {
         this.recoveryTaskRepository = recoveryTaskRepository;
         this.paymentQueryService = paymentQueryService;
         this.auditLogRepository = auditLogRepository;
+        this.recoveryTaskClaimService = recoveryTaskClaimService;
+        this.recoveryTaskStateService = recoveryTaskStateService;
     }
 
     @Transactional(readOnly = true)
@@ -72,39 +80,30 @@ public class PaymentRecoveryOperationService {
         return RecoveryTaskResponse.from(findTask(taskId));
     }
 
-    @Transactional
     public RecoveryTaskResponse retry(Long taskId) {
+        if (!recoveryTaskClaimService.claim(taskId)) {
+            throw new BusinessException(ErrorCode.RECOVERY_TASK_NOT_CLAIMABLE);
+        }
+
         PaymentRecoveryTask task = findTask(taskId);
-        validateRetryable(task);
-        task.markProcessing();
-        saveAudit("RECOVERY_TASK", "RETRY_REQUESTED", task.getTaskKey(), "운영자가 복구 작업 재시도를 요청했습니다.");
 
-        if (RecoveryType.APPROVE_UNKNOWN_CHECK.equals(task.getRecoveryType())) {
-            if (task.getPaymentId() == null) {
-                task.markFailed("paymentId가 없어 자동 승인 재조회가 불가능합니다. orderNo/tid/idempotencyKey 기준으로 수동 확인이 필요합니다.");
-                return RecoveryTaskResponse.from(task);
+        try {
+            saveAudit("RECOVERY_TASK", "RETRY_REQUESTED", task.getTaskKey(), "운영자가 복구 작업 재시도를 요청했습니다.");
+            if (RecoveryType.APPROVE_UNKNOWN_CHECK.equals(task.getRecoveryType())) {
+                return retryApproveUnknown(task);
             }
-            PaymentQueryResponse result = paymentQueryService.retryQuery(task.getPaymentId());
-            if (PaymentStatus.APPROVED.name().equals(result.paymentStatus())) {
-                task.markSuccess();
-                saveAudit("RECOVERY_TASK", "RETRY_SUCCESS", task.getTaskKey(), "승인 결과불명 재조회가 성공했습니다.");
-            } else if (PaymentStatus.APPROVE_FAILED.name().equals(result.paymentStatus())) {
-                task.markFailed(result.resultMessage());
-                saveAudit("RECOVERY_TASK", "RETRY_FAILED", task.getTaskKey(), "승인 결과불명 재조회가 실패로 확정되었습니다.");
-            } else {
-                task.markReady(result.resultMessage());
-                saveAudit("RECOVERY_TASK", "RETRY_PENDING", task.getTaskKey(), "승인 결과불명 재조회 결과가 아직 확정되지 않았습니다.");
+            throw new BusinessException(
+                    ErrorCode.RECOVERY_RETRY_NOT_ALLOWED,
+                    "현재 포트폴리오에서는 해당 복구 유형의 자동 재처리를 지원하지 않습니다."
+            );
+        } catch (Exception exception) {
+            recoveryTaskStateService.markFailed(taskId, exception.getMessage());
+            saveAudit("RECOVERY_TASK", "RETRY_FAILED", task.getTaskKey(), "복구 작업 재처리가 실패했습니다.");
+            if (exception instanceof RuntimeException runtimeException) {
+                throw runtimeException;
             }
-            return RecoveryTaskResponse.from(task);
+            throw new IllegalStateException(exception);
         }
-
-        if (RecoveryType.CANCEL_UNKNOWN_CHECK.equals(task.getRecoveryType())) {
-            task.markReady("현재 Mock PG Gateway에는 취소 결과 전용 조회 API가 없어 자동 재시도를 지원하지 않습니다.");
-            throw new BusinessException(ErrorCode.RECOVERY_RETRY_NOT_ALLOWED);
-        }
-
-        task.markReady("현재 복구 유형은 자동 재시도를 지원하지 않습니다.");
-        throw new BusinessException(ErrorCode.RECOVERY_RETRY_NOT_ALLOWED);
     }
 
     @Transactional
@@ -134,13 +133,25 @@ public class PaymentRecoveryOperationService {
                 .orElseThrow(() -> new NotFoundException(ErrorCode.RECOVERY_TASK_NOT_FOUND));
     }
 
-    private void validateRetryable(PaymentRecoveryTask task) {
-        if (RecoveryStatus.SUCCESS.equals(task.getStatus())) {
-            throw new BusinessException(ErrorCode.RECOVERY_TASK_ALREADY_COMPLETED);
+    private RecoveryTaskResponse retryApproveUnknown(PaymentRecoveryTask task) {
+        if (task.getPaymentId() == null) {
+            return recoveryTaskStateService.markFailed(
+                    task.getId(),
+                    "paymentId가 없어 자동 승인 재조회가 불가능합니다. orderNo/tid/idempotencyKey 기준으로 수동 확인이 필요합니다."
+            );
         }
-        if (task.getRetryCount() >= task.getMaxRetryCount()) {
-            throw new BusinessException(ErrorCode.RECOVERY_RETRY_NOT_ALLOWED, "복구 작업 최대 재시도 횟수를 초과했습니다.");
+
+        PaymentQueryResponse result = paymentQueryService.retryQuery(task.getPaymentId());
+        if (PaymentStatus.APPROVED.name().equals(result.paymentStatus())) {
+            saveAudit("RECOVERY_TASK", "RETRY_SUCCESS", task.getTaskKey(), "승인 결과불명 재조회가 성공했습니다.");
+            return recoveryTaskStateService.markSuccess(task.getId());
         }
+        if (PaymentStatus.APPROVE_FAILED.name().equals(result.paymentStatus())) {
+            saveAudit("RECOVERY_TASK", "RETRY_FAILED", task.getTaskKey(), "승인 결과불명 재조회가 실패로 확정되었습니다.");
+            return recoveryTaskStateService.markFailed(task.getId(), result.resultMessage());
+        }
+        saveAudit("RECOVERY_TASK", "RETRY_PENDING", task.getTaskKey(), "승인 결과불명 재조회 결과가 아직 확정되지 않았습니다.");
+        return recoveryTaskStateService.markReady(task.getId(), result.resultMessage());
     }
 
     private RecoveryStatus parseStatus(String status) {
@@ -178,9 +189,13 @@ public class PaymentRecoveryOperationService {
         auditLogRepository.save(AuditLog.builder()
                 .domainType(domainType)
                 .actionType(actionType)
-                .referenceKey(referenceKey)
+                .referenceKey(truncate(referenceKey, AUDIT_REFERENCE_KEY_MAX_LENGTH))
                 .description(description)
                 .loggedAt(LocalDateTime.now())
                 .build());
+    }
+
+    private String truncate(String value, int maxLength) {
+        return value == null || value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 }
