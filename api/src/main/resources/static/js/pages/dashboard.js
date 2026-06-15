@@ -253,8 +253,8 @@ function initProjectTable() {
             {
                 title: "프로젝트",
                 field: "title",
-                widthGrow: 2,
-                minWidth: 320,
+                widthGrow: 3,
+                minWidth: 300,
                 formatter: function (cell) {
                     const project = cell.getData();
 
@@ -265,8 +265,8 @@ function initProjectTable() {
             {
                 title: "역할",
                 field: "role",
-                width: 160,
-                minWidth: 150,
+                width: 140,
+                minWidth: 132,
                 formatter: function (cell) {
                     return '<span class="role-pill primary">' + escapeHtml(cell.getValue()) + '</span>';
                 }
@@ -274,8 +274,8 @@ function initProjectTable() {
             {
                 title: "도메인",
                 field: "domain",
-                width: 180,
-                minWidth: 170,
+                width: 150,
+                minWidth: 142,
                 formatter: function (cell) {
                     return '<span class="role-pill">' + escapeHtml(cell.getValue()) + '</span>';
                 }
@@ -283,8 +283,8 @@ function initProjectTable() {
             {
                 title: "기술",
                 field: "tech",
-                width: 260,
-                minWidth: 250,
+                width: 220,
+                minWidth: 210,
                 formatter: function (cell) {
                     return '<div class="tag-list">' + tagListMarkup(cell.getValue()) + '</div>';
                 },
@@ -709,6 +709,39 @@ function setupAccordion() {
 setupSidebarTooltips();
 restoreSidebarState();
 showDashboardLoading("프로젝트 목록을 준비하고 있어요");
+function initializeRevealSections() {
+    const sections = document.querySelectorAll(".reveal-section");
+    if (!sections.length) {
+        return;
+    }
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion || !("IntersectionObserver" in window)) {
+        sections.forEach(function (section) {
+            section.classList.add("is-visible");
+        });
+        return;
+    }
+
+    const observer = new IntersectionObserver(function (entries, currentObserver) {
+        entries.forEach(function (entry) {
+            if (!entry.isIntersecting) {
+                return;
+            }
+            entry.target.classList.add("is-visible");
+            currentObserver.unobserve(entry.target);
+        });
+    }, {
+        threshold: 0.12,
+        rootMargin: "0px 0px -40px 0px"
+    });
+
+    sections.forEach(function (section) {
+        observer.observe(section);
+    });
+}
+
+initializeRevealSections();
 initProjectTable();
 animateCounters();
 setupScrollSpy();
