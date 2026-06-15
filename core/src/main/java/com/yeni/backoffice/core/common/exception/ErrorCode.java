@@ -25,6 +25,7 @@ public enum ErrorCode {
     PAYMENT_RECOVERY_REQUIRED(409, "복구 작업 확인이 필요한 결제입니다."),
     RECOVERY_TASK_NOT_FOUND(404, "복구 작업을 찾을 수 없습니다."),
     RECOVERY_TASK_ALREADY_COMPLETED(409, "이미 완료된 복구 작업입니다."),
+    RECOVERY_TASK_NOT_CLAIMABLE(409, "이미 처리 중이거나 완료된 복구 작업입니다."),
     RECOVERY_RETRY_NOT_ALLOWED(409, "현재 복구 유형은 자동 재시도를 지원하지 않습니다."),
 
     SALES_TRANSACTION_NOT_FOUND(404, "매출 원장 거래를 찾을 수 없습니다."),
