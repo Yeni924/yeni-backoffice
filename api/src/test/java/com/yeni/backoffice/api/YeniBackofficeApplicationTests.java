@@ -49,6 +49,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -430,6 +435,65 @@ class YeniBackofficeApplicationTests {
 	}
 
 	@Test
+	void concurrentPartialCancelCreatesOnlyAllowedAmount() throws Exception {
+		String orderNo = unique("ORDER-CONCURRENT-PARTIAL-CANCEL");
+		PaymentApproveResponse approved = paymentApproveService.approvePayment(
+				approveRequest(orderNo, new BigDecimal("10000"), "APPROVE-" + orderNo));
+
+		ConcurrentCancelResult result = runConcurrentCancels(
+				approved.paymentId(), new BigDecimal("8000"),
+				approved.paymentId(), new BigDecimal("8000"));
+
+		assertThat(result.successCount()).isEqualTo(1);
+		assertThat(result.failureCount()).isEqualTo(1);
+
+		var payment = paymentRepository.findById(approved.paymentId()).orElseThrow();
+		var cancels = cancelRepository.findAll().stream()
+				.filter(cancel -> approved.paymentId().equals(cancel.getPaymentId()))
+				.toList();
+		var cancelLedgers = salesRepository.findAll().stream()
+				.filter(sales -> approved.paymentId().equals(sales.getPaymentId()) && SaleType.CANCEL.equals(sales.getSaleType()))
+				.toList();
+
+		assertThat(payment.getCanceledAmount()).isEqualByComparingTo("8000");
+		assertThat(payment.getCanceledAmount().compareTo(payment.getApprovedAmount())).isLessThanOrEqualTo(0);
+		assertThat(cancels).hasSize(1);
+		assertThat(cancelLedgers).hasSize(1);
+		assertThat(cancelLedgers.get(0).getTotalAmount()).isEqualByComparingTo("-8000");
+	}
+
+	@Test
+	void partialCancelLockDoesNotBlockDifferentPaymentRows() throws Exception {
+		String orderNoA = unique("ORDER-CONCURRENT-PAYMENT-A");
+		String orderNoB = unique("ORDER-CONCURRENT-PAYMENT-B");
+		PaymentApproveResponse approvedA = paymentApproveService.approvePayment(
+				approveRequest(orderNoA, new BigDecimal("10000"), "APPROVE-" + orderNoA));
+		PaymentApproveResponse approvedB = paymentApproveService.approvePayment(
+				approveRequest(orderNoB, new BigDecimal("10000"), "APPROVE-" + orderNoB));
+
+		ConcurrentCancelResult result = runConcurrentCancels(
+				approvedA.paymentId(), new BigDecimal("3000"),
+				approvedB.paymentId(), new BigDecimal("4000"));
+
+		assertThat(result.successCount()).isEqualTo(2);
+		assertThat(result.failureCount()).isZero();
+		assertThat(paymentRepository.findById(approvedA.paymentId()).orElseThrow().getCanceledAmount())
+				.isEqualByComparingTo("3000");
+		assertThat(paymentRepository.findById(approvedB.paymentId()).orElseThrow().getCanceledAmount())
+				.isEqualByComparingTo("4000");
+		assertThat(cancelRepository.findAll().stream().filter(cancel -> approvedA.paymentId().equals(cancel.getPaymentId())))
+				.hasSize(1);
+		assertThat(cancelRepository.findAll().stream().filter(cancel -> approvedB.paymentId().equals(cancel.getPaymentId())))
+				.hasSize(1);
+		assertThat(salesRepository.findAll().stream()
+				.filter(sales -> approvedA.paymentId().equals(sales.getPaymentId()) && SaleType.CANCEL.equals(sales.getSaleType())))
+				.hasSize(1);
+		assertThat(salesRepository.findAll().stream()
+				.filter(sales -> approvedB.paymentId().equals(sales.getPaymentId()) && SaleType.CANCEL.equals(sales.getSaleType())))
+				.hasSize(1);
+	}
+
+	@Test
 	void cancelRequestRequiresIdempotencyKey() {
 		String orderNo = unique("ORDER-CANCEL-KEY-REQUIRED");
 		PaymentApproveResponse approved = paymentApproveService.approvePayment(
@@ -712,6 +776,56 @@ class YeniBackofficeApplicationTests {
 		return new PaymentBridgeCancelRequest(PgProvider.MOCK, amount, "portfolio cancel", idempotencyKey);
 	}
 
+	private ConcurrentCancelResult runConcurrentCancels(
+			Long firstPaymentId,
+			BigDecimal firstAmount,
+			Long secondPaymentId,
+			BigDecimal secondAmount) throws InterruptedException {
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+		CountDownLatch done = new CountDownLatch(2);
+		AtomicInteger successCount = new AtomicInteger();
+		AtomicInteger failureCount = new AtomicInteger();
+
+		try {
+			submitCancel(executor, ready, start, done, successCount, failureCount, firstPaymentId, firstAmount);
+			submitCancel(executor, ready, start, done, successCount, failureCount, secondPaymentId, secondAmount);
+
+			assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+			assertThat(done.await(10, TimeUnit.SECONDS)).isTrue();
+			return new ConcurrentCancelResult(successCount.get(), failureCount.get());
+		} finally {
+			executor.shutdownNow();
+		}
+	}
+
+	private void submitCancel(
+			ExecutorService executor,
+			CountDownLatch ready,
+			CountDownLatch start,
+			CountDownLatch done,
+			AtomicInteger successCount,
+			AtomicInteger failureCount,
+			Long paymentId,
+			BigDecimal amount) {
+		executor.submit(() -> {
+			try {
+				ready.countDown();
+				start.await();
+				paymentCancelService.cancelPaymentBridge(
+						paymentId,
+						cancelRequest(amount, "CANCEL-CONCURRENT-" + UUID.randomUUID()));
+				successCount.incrementAndGet();
+			} catch (Exception exception) {
+				failureCount.incrementAndGet();
+			} finally {
+				done.countDown();
+			}
+		});
+	}
+
 	private String unique(String prefix) {
 		return prefix + "-" + UUID.randomUUID();
 	}
@@ -719,5 +833,8 @@ class YeniBackofficeApplicationTests {
 	private LocalDate uniqueSettlementDate() {
 		long offset = Math.abs(UUID.randomUUID().getMostSignificantBits() % 100000L) + 10L;
 		return LocalDate.now().plusDays(offset);
+	}
+
+	private record ConcurrentCancelResult(int successCount, int failureCount) {
 	}
 }
