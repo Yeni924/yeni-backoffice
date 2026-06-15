@@ -25,6 +25,7 @@ Java 입문 문법을 나열하는 대신, 기존 실무 도메인을 Spring MVC
 
 - Idempotency Key와 unique constraint 기반 중복 요청 방어
 - 부분취소 시 비관적 락과 취소 가능 금액 검증
+- 같은 payment row의 동시 부분취소 초과 방어와 서로 다른 row의 독립 처리 테스트
 - 확정 거래만 SALE/CANCEL 원장으로 기록
 - 결과불명 상태와 RecoveryTask 분리
 - 외부전송·알림톡 Queue를 결제 처리와 분리
@@ -65,6 +66,11 @@ Java 입문 문법을 나열하는 대신, 기존 실무 도메인을 Spring MVC
 - 외부전송·알림톡 Queue 생성 및 상태 관리
 - 정산 초안·확정·지급 상태 전이
 - 주요 자동화 테스트
+
+부분취소 동시성 테스트는 `PaymentTransaction` PK의 단일 row에 적용되는 `PESSIMISTIC_WRITE`를
+기준으로 최종 취소금액과 CANCEL 원장이 승인금액을 초과하지 않는지 검증합니다. H2 테스트 환경과
+실제 운영 DB의 lock wait 동작에는 차이가 있을 수 있어, 운영 확장 시에는 실제 DB 기반 통합 테스트와
+외부 PG 호출 구간의 트랜잭션 분리를 추가로 검토합니다.
 
 ### 운영 환경 확장 필요
 
