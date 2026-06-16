@@ -45,6 +45,7 @@
         bindFilters();
         bindModal();
         setDefaultDateRange("salesStartDate", "salesEndDate");
+        applyInitialQuery();
         await refresh();
     });
 
@@ -73,6 +74,13 @@
             });
         });
         setQuickFilter("all");
+    }
+
+    function applyInitialQuery() {
+        const keyword = new URLSearchParams(window.location.search).get("keyword");
+        if (keyword) {
+            document.getElementById("salesKeyword").value = keyword;
+        }
     }
 
     function bindModal() {

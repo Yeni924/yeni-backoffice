@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>주문 관리 - Yeni Backoffice</title>
+
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/layout.css}" />
+    <link rel="stylesheet" th:href="@{/css/components.css}" />
+    <link rel="stylesheet" th:href="@{/vendor/tabulator/tabulator.min.css}" />
+    <link rel="stylesheet" th:href="@{/css/pages/payment-operations.css}" />
+    <link rel="stylesheet" th:href="@{/css/scroll-top.css}" />
+</head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/sidebar}"></div>
+    <main class="main">
+        <div th:replace="~{fragments/topbar :: header}"></div>
+
+        <section class="content payment-page">
+            <div class="payment-hero">
+                <div>
+                    <span class="badge">주문 운영</span>
+                    <h2>주문 관리</h2>
+                    <p>쇼핑몰 주문이 결제 승인으로 이어지고, 결제 완료 후 SALE 매출 원장과 외부전송, 알림톡 Queue가 생성되는 흐름을 확인합니다.</p>
+                </div>
+                <a class="btn btn-light swagger-link" href="/admin/payment-operations">PG 운영 보기</a>
+            </div>
+
+            <div class="demo-flow-guide">
+                <strong>추천 시연 순서</strong>
+                <span>주문 생성 → 주문 결제 승인 → 결제 통합 추적 → 매출 원장 SALE 확인 → 정산 초안 생성</span>
+            </div>
+
+            <section class="card ops-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>주문 흐름 요약</h3>
+                        <p class="section-help">이번 확장은 물류까지 한 번에 붙이지 않고, 주문과 기존 결제 운영 흐름을 연결하는 데 집중했습니다.</p>
+                    </div>
+                    <button class="btn btn-light" id="orderRefreshBtn" type="button">새로고침</button>
+                </div>
+                <div class="metric-grid">
+                    <div><span>총 주문</span><strong id="orderTotalCount">0</strong></div>
+                    <div><span>결제 완료</span><strong id="orderPaidCount">0</strong></div>
+                    <div><span>결제 대기</span><strong id="orderPaymentReadyCount">0</strong></div>
+                    <div><span>승인 결과불명</span><strong id="orderPaymentUnknownCount">0</strong></div>
+                    <div class="metric-highlight"><span>총 주문금액</span><strong id="orderTotalAmount">0원</strong></div>
+                </div>
+                <div id="orderMessageBox" class="message-box">주문을 생성하면 결제 승인과 매출 원장 반영 흐름을 이어서 확인할 수 있습니다.</div>
+            </section>
+
+            <section class="card ops-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3>주문 생성</h3>
+                        <p class="section-help">F.O 주문 생성 대신 백오피스에서 Mock 주문을 생성해 결제 운영 흐름과 연결합니다.</p>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <label>주문번호 <input id="orderNoInput" type="text" placeholder="비워두면 자동 생성" /></label>
+                    <label>주문금액 <input id="orderAmountInput" type="number" min="1000" step="1000" value="12000" /></label>
+                    <label>구매자 <input id="buyerNameInput" type="text" value="포트폴리오 고객" /></label>
+                    <label>상품명 <input id="productNameInput" type="text" value="커머스 주문 테스트 상품" /></label>
+                </div>
+                <div class="button-row">
+                    <button class="btn btn-primary" id="createOrderBtn" type="button">주문 생성</button>
+                    <button class="btn btn-light" id="createMockOrderBtn" type="button">Mock 주문 생성</button>
+                </div>
+            </section>
+
+            <section class="card table-section">
+                <div class="panel-header">
+                    <div>
+                        <h3>주문 목록</h3>
+                        <p class="table-caption">행의 결제 승인 버튼을 누르면 기존 결제 승인 서비스가 호출되고, 결제 거래와 SALE 원장이 생성됩니다.</p>
+                    </div>
+                </div>
+                <div class="status-legend">
+                    <span><b class="status-dot ready"></b>CREATED: 주문 생성 완료, 결제 대기</span>
+                    <span><b class="status-dot paid"></b>PAID: 결제 승인 완료</span>
+                    <span><b class="status-dot unknown"></b>APPROVE_UNKNOWN: PG 승인 결과불명</span>
+                    <span><b class="status-dot cancel"></b>FAILED: 결제 실패</span>
+                </div>
+                <div id="commerceOrderTable" class="tabulator-host"></div>
+            </section>
+        </section>
+    </main>
+</div>
+
+<script th:src="@{/vendor/tabulator/tabulator.min.js}"></script>
+<script th:src="@{/js/common.js}"></script>
+<script th:src="@{/js/pages/commerce-orders.js}"></script>
+<script th:src="@{/js/scroll-top.js}"></script>
+</body>
+</html>

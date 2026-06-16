@@ -249,6 +249,7 @@ Mac/Linux:
 - Demo: https://yeni-demo.fly.dev/
 - PDF: [권예은 백오피스 포트폴리오 PDF](https://github.com/user-attachments/files/28837173/_._.pptx.pdf)
 - Repository: https://github.com/Yeni924/yeni-backoffice
+- Implementation Notes: [docs/implementation-notes.md](docs/implementation-notes.md)
 - 제출 가이드: [docs/submission-guide.md](docs/submission-guide.md)
 
 라이브 데모는 무료 호스팅 환경과 H2 in-memory DB를 사용합니다. 초기 접속 또는 배포 직후 응답이 지연될 수 있으며, Machine 재시작 시 시연 데이터가 초기화됩니다.
@@ -281,7 +282,7 @@ Mac/Linux:
 
 ## 13. 제출용 PDF
 
-채용 플랫폼에서 파일 제출만 가능한 경우를 대비해 PDF 포트폴리오를 함께 준비했습니다. PDF에는 프로젝트 개요, 핵심 운영 흐름, 주요 화면, 구현 포인트와 아키텍처 리뷰 요약을 정리했습니다.
+파일 제출만 가능한 경우를 대비해 PDF 문서를 함께 준비했습니다. PDF에는 프로젝트 개요, 핵심 운영 흐름, 주요 화면, 구현 포인트와 아키텍처 리뷰 요약을 정리했습니다.
 
 > PDF 포트폴리오는 제출용 파일로 별도 관리하며, 최신 공개본은 Demo 안내의 링크에서 확인할 수 있습니다. 저장소 내부 `docs/portfolio.pdf` 형태로 함께 관리하는 방식은 추후 정리할 예정입니다.
 

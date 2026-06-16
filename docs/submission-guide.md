@@ -1,5 +1,7 @@
 # Portfolio Submission Guide
 
+구현 의도, 동시성 방어, 현재 한계와 운영 확장 방향은 [Implementation Notes](implementation-notes.md)에서 확인할 수 있습니다.
+
 ## 이 프로젝트를 보는 순서
 
 1. README 상단에서 프로젝트 목적과 핵심 구현 범위를 확인합니다.
