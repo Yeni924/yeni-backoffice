@@ -209,6 +209,16 @@
                         <span><b class="status-dot unknown"></b>결과불명/망취소: PG 결과 확인 또는 운영 복구 필요</span>
                         <span><b class="status-dot ready"></b>대기: 아직 처리 전 상태</span>
                     </div>
+                    <div class="quick-filter-toolbar ops-quick-filter" aria-label="결제 거래 빠른 필터">
+                        <span>빠른 필터</span>
+                        <div class="quick-filter-row">
+                            <button class="active" type="button" data-ops-filter="ALL">전체</button>
+                            <button type="button" data-ops-filter="NEEDS_ACTION">확인 필요</button>
+                            <button type="button" data-ops-filter="UNKNOWN">결과불명</button>
+                            <button type="button" data-ops-filter="FOLLOWUP_FAILED">후속처리 실패</button>
+                            <button type="button" data-ops-filter="SETTLEMENT_READY">정산 대기</button>
+                        </div>
+                    </div>
                     <div id="paymentTable" class="tabulator-host"></div>
                 </section>
             </section>
@@ -266,6 +276,19 @@
             </section>
         </section>
     </main>
+</div>
+
+<div class="modal-backdrop" id="paymentTraceModal" hidden>
+    <section class="detail-modal trace-modal" role="dialog" aria-modal="true" aria-labelledby="paymentTraceTitle">
+        <div class="detail-modal-header">
+            <div>
+                <span class="badge">거래 통합 추적</span>
+                <h3 id="paymentTraceTitle">결제 흐름 상세</h3>
+            </div>
+            <button class="btn btn-light" id="closePaymentTraceBtn" type="button" aria-label="닫기">닫기</button>
+        </div>
+        <div id="paymentTraceBody" class="detail-grid"></div>
+    </section>
 </div>
 
 <script th:src="@{/vendor/tabulator/tabulator.min.js}"></script>

@@ -24,6 +24,8 @@ public interface SalesTransactionRepository extends JpaRepository<SalesTransacti
 
     Optional<SalesTransaction> findFirstByOrderNoAndSaleTypeOrderByIdAsc(String orderNo, SaleType saleType);
 
+    List<SalesTransaction> findByPaymentIdOrderByIdAsc(Long paymentId);
+
     @Query("""
             select s
             from SalesTransaction s

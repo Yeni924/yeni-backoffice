@@ -6,12 +6,14 @@ import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentBridgeCance
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentBridgeCancelResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentBridgeDtos.PaymentQueryResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentResponse;
+import com.yeni.backoffice.core.payment.dto.PaymentDtos.PaymentTraceResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.PgLogResponse;
 import com.yeni.backoffice.core.payment.dto.PaymentDtos.ScenarioRunResponse;
 import com.yeni.backoffice.core.payment.service.PaymentApproveService;
 import com.yeni.backoffice.core.payment.service.PaymentCancelService;
 import com.yeni.backoffice.core.payment.service.PaymentQueryService;
 import com.yeni.backoffice.core.payment.service.PaymentScenarioService;
+import com.yeni.backoffice.core.payment.service.PaymentTraceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -34,16 +36,19 @@ public class PaymentBridgeRestController {
     private final PaymentCancelService cancelService;
     private final PaymentQueryService queryService;
     private final PaymentScenarioService paymentScenarioService;
+    private final PaymentTraceService paymentTraceService;
 
     public PaymentBridgeRestController(
             PaymentApproveService approveService,
             PaymentCancelService cancelService,
             PaymentQueryService queryService,
-            PaymentScenarioService paymentScenarioService) {
+            PaymentScenarioService paymentScenarioService,
+            PaymentTraceService paymentTraceService) {
         this.approveService = approveService;
         this.cancelService = cancelService;
         this.queryService = queryService;
         this.paymentScenarioService = paymentScenarioService;
+        this.paymentTraceService = paymentTraceService;
     }
 
     @PostMapping("/payments/approve")
@@ -82,6 +87,12 @@ public class PaymentBridgeRestController {
     @Operation(summary = "결제 PG 로그 조회", description = "결제 거래의 요청/응답/재조회 로그를 조회합니다.")
     public ResponseEntity<List<PgLogResponse>> paymentLogs(@PathVariable Long paymentId) {
         return ResponseEntity.ok(queryService.getPaymentLogs(paymentId));
+    }
+
+    @GetMapping("/payments/{paymentId}/trace")
+    @Operation(summary = "결제 통합 추적 조회", description = "결제와 연결된 취소, 원장, 후속 처리, 복구 작업, 정산, PG 로그를 조회합니다.")
+    public ResponseEntity<PaymentTraceResponse> paymentTrace(@PathVariable Long paymentId) {
+        return ResponseEntity.ok(paymentTraceService.getTrace(paymentId));
     }
 
     @PostMapping("/scenarios/{scenarioType}")
