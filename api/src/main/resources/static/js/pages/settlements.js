@@ -2,6 +2,7 @@
     let table;
     let rows = [];
     let currentStatementId = null;
+    let initialStatementId = null;
 
     document.addEventListener("DOMContentLoaded", async function () {
         table = new Tabulator("#settlementPageTable", {
@@ -29,7 +30,14 @@
         bindFilters();
         bindModal();
         setDefaultDateRange("settlementStartDate", "settlementEndDate");
+        initialStatementId = Number(new URLSearchParams(window.location.search).get("statementId")) || null;
         await refresh();
+        if (initialStatementId) {
+            const statement = rows.find(function (row) { return row.id === initialStatementId; });
+            if (statement) {
+                await openSettlementDetail(statement);
+            }
+        }
     });
 
     function bindFilters() {
@@ -189,6 +197,7 @@
         const filtered = rows.filter(function (row) {
             const matchesStatus = !status || row.settlementStatus === status;
             const matchesKeyword = !keyword || [
+                row.id,
                 row.settlementDate,
                 pgCompanyLabel(row.pgCompany),
                 row.mid,

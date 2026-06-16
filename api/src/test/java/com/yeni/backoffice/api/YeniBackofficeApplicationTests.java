@@ -250,6 +250,48 @@ class YeniBackofficeApplicationTests {
 	}
 
 	@Test
+	void commerceOrderPaymentCreatesPaymentTraceAndSaleLedger() throws Exception {
+		MvcResult orderResult = mockMvc.perform(post("/admin/api/commerce/orders")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "orderNo": "ORDER-COMMERCE-TEST-001",
+								  "buyerName": "포트폴리오 고객",
+								  "productName": "커머스 주문 테스트 상품",
+								  "orderAmount": 12000
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		JsonNode order = objectMapper.readTree(orderResult.getResponse().getContentAsString());
+		assertThat(order.get("orderStatus").asText()).isEqualTo("CREATED");
+		assertThat(order.get("paymentStatus").asText()).isEqualTo("READY");
+
+		MvcResult paidResult = mockMvc.perform(post("/admin/api/commerce/orders/{orderId}/pay", order.get("id").asLong()))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		JsonNode paid = objectMapper.readTree(paidResult.getResponse().getContentAsString());
+		Long paymentId = paid.get("paymentId").asLong();
+		assertThat(paid.get("orderStatus").asText()).isEqualTo("PAID");
+		assertThat(paid.get("paymentStatus").asText()).isEqualTo("APPROVED");
+		assertThat(paymentId).isPositive();
+
+		JsonNode trace = objectMapper.readTree(mockMvc.perform(get("/api/payment-bridge/payments/{paymentId}/trace", paymentId))
+				.andExpect(status().isOk())
+				.andReturn()
+				.getResponse()
+				.getContentAsString());
+
+		assertThat(trace.get("payment").get("orderNo").asText()).isEqualTo("ORDER-COMMERCE-TEST-001");
+		assertThat(trace.get("sales")).hasSize(1);
+		assertThat(trace.get("sales").get(0).get("saleType").asText()).isEqualTo("SALE");
+		assertThat(trace.get("externalSends")).hasSize(1);
+		assertThat(trace.get("alimtalkQueues")).hasSize(1);
+	}
+
+	@Test
 	void invalidApproveRequestReturnsValidationErrorWithRequestIdAndFieldErrors() throws Exception {
 		MvcResult result = mockMvc.perform(post("/api/payment-bridge/payments/approve")
 						.header("X-Request-Id", "REQ-VALIDATION-TEST")

@@ -136,6 +136,42 @@ public final class PaymentDtos {
         }
     }
 
+    public record PaymentCancelTraceResponse(
+            Long id,
+            Long paymentId,
+            String tid,
+            BigDecimal cancelAmount,
+            String cancelType,
+            String cancelStatus,
+            String cancelReason,
+            LocalDateTime canceledAt
+    ) {
+        public static PaymentCancelTraceResponse from(com.yeni.backoffice.core.payment.entity.PaymentCancel cancel) {
+            return new PaymentCancelTraceResponse(
+                    cancel.getId(),
+                    cancel.getPaymentId(),
+                    cancel.getTid(),
+                    cancel.getCancelAmount(),
+                    cancel.getCancelType().name(),
+                    cancel.getCancelStatus().name(),
+                    cancel.getCancelReason(),
+                    cancel.getCanceledAt()
+            );
+        }
+    }
+
+    public record PaymentTraceResponse(
+            PaymentResponse payment,
+            List<PaymentCancelTraceResponse> cancels,
+            List<SalesResponse> sales,
+            List<ExternalSendResponse> externalSends,
+            List<AlimtalkQueueResponse> alimtalkQueues,
+            List<RecoveryTaskResponse> recoveryTasks,
+            List<SettlementDetailResponse> settlementDetails,
+            List<PgLogResponse> pgLogs
+    ) {
+    }
+
     @Schema(description = "PG API 로그 조회 응답")
     public record PgLogResponse(
             Long id,
@@ -504,6 +540,7 @@ public final class PaymentDtos {
     @Schema(description = "정산 상세 조회 응답")
     public record SettlementDetailResponse(
             Long id,
+            Long settlementStatementId,
             Long salesId,
             String saleType,
             BigDecimal saleAmount,
@@ -513,6 +550,7 @@ public final class PaymentDtos {
         public static SettlementDetailResponse from(SettlementDetail detail) {
             return new SettlementDetailResponse(
                     detail.getId(),
+                    detail.getSettlementStatementId(),
                     detail.getSalesId(),
                     detail.getSaleType(),
                     detail.getSaleAmount(),

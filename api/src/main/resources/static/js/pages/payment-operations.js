@@ -1,5 +1,10 @@
 (function () {
     let currentPaymentId = null;
+    let currentPaymentFilter = "ALL";
+    let paymentRows = [];
+    let externalRows = [];
+    let alimtalkRows = [];
+    let recoveryRows = [];
     const tables = {};
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -10,6 +15,13 @@
 
         bindTabs();
         initTables();
+        bindPaymentTraceModal();
+        bindQuickFilters();
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && !document.getElementById("paymentTraceModal").hidden) {
+                closePaymentTrace();
+            }
+        });
         bind("runPaymentBtn", runPaymentFlow);
         bind("cancelPaymentBtn", function () {
             return cancelPaymentWithKey("CANCEL-" + Date.now());
@@ -48,17 +60,15 @@
         document.querySelectorAll("[data-tab-target]").forEach(function (button) {
             button.addEventListener("click", function () {
                 const target = button.dataset.tabTarget;
-                document.querySelectorAll("[data-tab-target]").forEach(function (tab) {
-                    tab.classList.toggle("active", tab.dataset.tabTarget === target);
-                });
-                document.querySelectorAll("[data-tab-panel]").forEach(function (panel) {
-                    panel.classList.toggle("active", panel.dataset.tabPanel === target);
-                });
-                setTimeout(function () {
-                    Object.values(tables).forEach(function (table) {
-                        table.redraw(true);
-                    });
-                }, 0);
+                activateTab(target);
+            });
+        });
+    }
+
+    function bindQuickFilters() {
+        document.querySelectorAll("[data-ops-filter]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                applyQuickFilter(button.dataset.opsFilter);
             });
         });
     }
@@ -71,6 +81,19 @@
             paginationSizeSelector: [10, 20, 50],
             placeholder: "조회된 결제 거래가 없습니다.",
             columns: [
+                {
+                    title: "추적",
+                    field: "id",
+                    width: 76,
+                    hozAlign: "center",
+                    formatter: function () {
+                        return "<button class=\"table-action\" type=\"button\">보기</button>";
+                    },
+                    cellClick: function (event, cell) {
+                        event.stopPropagation();
+                        openPaymentTrace(cell.getRow().getData().id);
+                    }
+                },
                 {title: "ID", field: "id", width: 80, hozAlign: "center"},
                 {title: "주문번호", field: "orderNo", minWidth: 190},
                 {title: "PG 거래번호", field: "tid", minWidth: 180, formatter: emptyFormatter},
@@ -79,6 +102,10 @@
                 {title: "상태", field: "paymentStatus", width: 160, formatter: statusFormatter, headerFilter: "select", headerFilterParams: {values: paymentStatusFilterValues()}},
                 {title: "승인일시", field: "approvedAt", minWidth: 170, formatter: dateTimeFormatter}
             ]
+        });
+
+        tables.payments.on("rowClick", function (event, row) {
+            openPaymentTrace(row.getData().id);
         });
 
         tables.external = new Tabulator("#externalTable", {
@@ -252,16 +279,78 @@
             emptyGuide.hidden = totalRows > 0;
         }
 
-        tables.payments.setData(payments);
-        tables.external.setData(externalRequests);
-        tables.alimtalk.setData(alimtalkQueues);
-        tables.recovery.setData(recoveryTasks.data || []);
+        paymentRows = payments || [];
+        externalRows = externalRequests || [];
+        alimtalkRows = alimtalkQueues || [];
+        recoveryRows = recoveryTasks.data || [];
+
+        renderPayments();
+        tables.external.setData(externalRows);
+        tables.alimtalk.setData(alimtalkRows);
+        tables.recovery.setData(recoveryRows);
+    }
+
+    function applyQuickFilter(filter) {
+        currentPaymentFilter = filter || "ALL";
+        document.querySelectorAll("[data-ops-filter]").forEach(function (button) {
+            button.classList.toggle("active", button.dataset.opsFilter === currentPaymentFilter);
+        });
+
+        if (currentPaymentFilter === "FOLLOWUP_FAILED") {
+            activateTab("followups");
+            tables.external.setFilter("sendStatus", "=", "FAILED");
+            tables.alimtalk.setFilter("status", "=", "FAILED");
+            tables.recovery.setFilter("status", "=", "FAILED");
+            setMessage("후속처리 실패 건만 표시했습니다. 외부전송, 알림톡, 복구 작업 상태를 확인해 주세요.");
+            return;
+        }
+
+        clearFollowupFilters();
+        if (currentPaymentFilter === "SETTLEMENT_READY") {
+            window.location.href = "/admin/payment-operations/sales-ledger?settlementStatus=NOT_SETTLED";
+            return;
+        }
+        renderPayments();
+    }
+
+    function renderPayments() {
+        const filtered = paymentRows.filter(function (payment) {
+            if (currentPaymentFilter === "UNKNOWN") {
+                return payment.paymentStatus === "APPROVE_UNKNOWN" || payment.paymentStatus === "CANCEL_UNKNOWN";
+            }
+            if (currentPaymentFilter === "NEEDS_ACTION") {
+                return ["APPROVE_UNKNOWN", "CANCEL_UNKNOWN", "NETWORK_CANCEL_REQUIRED", "APPROVE_FAILED", "CANCEL_FAILED"].includes(payment.paymentStatus);
+            }
+            return true;
+        });
+        tables.payments.setData(filtered);
+    }
+
+    function clearFollowupFilters() {
+        if (tables.external) tables.external.clearFilter(true);
+        if (tables.alimtalk) tables.alimtalk.clearFilter(true);
+        if (tables.recovery) tables.recovery.clearFilter(true);
+    }
+
+    function activateTab(target) {
+        document.querySelectorAll("[data-tab-target]").forEach(function (tab) {
+            tab.classList.toggle("active", tab.dataset.tabTarget === target);
+        });
+        document.querySelectorAll("[data-tab-panel]").forEach(function (panel) {
+            panel.classList.toggle("active", panel.dataset.tabPanel === target);
+        });
+        setTimeout(function () {
+            Object.values(tables).forEach(function (table) {
+                table.redraw(true);
+            });
+        }, 0);
     }
 
     async function runWorker(url, label) {
         try {
             const result = await postJson(url, {limit: 20});
-            setMessage(label + " Worker 처리 완료: 대상 " + result.targetCount
+            setMessage(label + " 처리를 완료했습니다. 대상 " + result.targetCount
+                + "건 / 처리 확보 " + result.claimedCount
                 + "건 / 성공 " + result.successCount
                 + "건 / 실패 " + result.failureCount
                 + "건 / 건너뜀 " + result.skippedCount + "건");
@@ -269,6 +358,265 @@
         } catch (error) {
             setMessage(error.message);
         }
+    }
+
+    function bindPaymentTraceModal() {
+        bind("closePaymentTraceBtn", closePaymentTrace);
+        const modal = document.getElementById("paymentTraceModal");
+        if (modal) {
+            modal.addEventListener("click", function (event) {
+                if (event.target === modal) {
+                    closePaymentTrace();
+                }
+            });
+            modal.addEventListener("click", handleTraceActionClick);
+        }
+    }
+
+    async function openPaymentTrace(paymentId) {
+        try {
+            const trace = await getJson("/api/payment-bridge/payments/" + paymentId + "/trace");
+            document.getElementById("paymentTraceTitle").textContent = "결제 #" + paymentId + " 통합 추적";
+            document.getElementById("paymentTraceBody").innerHTML = renderPaymentTrace(trace);
+            document.getElementById("paymentTraceModal").hidden = false;
+        } catch (error) {
+            setMessage(error.message);
+        }
+    }
+
+    function closePaymentTrace() {
+        document.getElementById("paymentTraceModal").hidden = true;
+    }
+
+    function renderPaymentTrace(trace) {
+        const payment = trace.payment || {};
+        const salesAmount = (trace.sales || []).reduce(function (total, item) {
+            return total + Number(item.totalAmount || 0);
+        }, 0);
+        const needsAction = []
+            .concat((trace.externalSends || []).filter(function (item) { return item.sendStatus === "FAILED"; }))
+            .concat((trace.alimtalkQueues || []).filter(function (item) { return item.status === "FAILED"; }))
+            .concat((trace.recoveryTasks || []).filter(function (item) { return item.status !== "SUCCESS"; }));
+
+        return [
+            "<article class=\"trace-sheet\">",
+            "  <header class=\"trace-summary\">",
+            "    <div><span class=\"receipt-kicker " + statusClass(payment.paymentStatus) + "\">" + statusLabel(payment.paymentStatus) + "</span>",
+            "      <h4>" + escapeHtml(payment.orderNo || "-") + "</h4>",
+            "      <p>PG 거래번호 " + escapeHtml(payment.tid || "-") + " / MID " + escapeHtml(payment.mid || "-") + "</p></div>",
+            "    <div class=\"trace-amount\"><span>승인 / 취소 가능</span><strong>" + formatMoney(payment.approvedAmount) + "</strong><small>" + formatMoney(Number(payment.approvedAmount || 0) - Number(payment.canceledAmount || 0)) + "</small></div>",
+            "  </header>",
+            traceMetrics(trace, salesAmount, needsAction.length),
+            needsAction.length > 0 ? actionNotice(needsAction) : "<div class=\"trace-notice success\">현재 확인이 필요한 실패 또는 복구 작업이 없습니다.</div>",
+            traceActions(trace),
+            traceSection("처리 흐름", traceTimeline(trace)),
+            traceSection("취소 내역", traceTable(
+                ["취소 ID", "유형", "금액", "상태", "사유", "처리일시"],
+                (trace.cancels || []).map(function (item) {
+                    return ["#" + item.id, cancelTypeLabel(item.cancelType), formatMoney(item.cancelAmount), statusLabel(item.cancelStatus), item.cancelReason || "-", formatDateTime(item.canceledAt)];
+                }),
+                "취소 내역이 없습니다."
+            )),
+            traceSection("SALE/CANCEL 매출 원장", traceLinkList(
+                trace.sales || [],
+                function (item) { return "#" + item.id + " " + saleTypeLabel(item.saleType) + " " + formatMoney(item.totalAmount); },
+                function (item) { return "/admin/payment-operations/sales-ledger?keyword=" + encodeURIComponent(item.orderNo); },
+                "생성된 매출 원장이 없습니다."
+            )),
+            traceSection("후속 처리 및 복구", renderFollowups(trace)),
+            traceSection("정산 연결", traceLinkList(
+                trace.settlementDetails || [],
+                function (item) { return "정산 명세 #" + item.settlementStatementId + " / 원장 #" + item.salesId + " / " + formatMoney(item.netAmount); },
+                function (item) { return "/admin/payment-operations/settlements?statementId=" + encodeURIComponent(item.settlementStatementId); },
+                "아직 정산 명세에 포함되지 않았습니다."
+            )),
+            traceSection("PG 요청 이력", traceTable(
+                ["시각", "API", "결과", "requestId", "메시지"],
+                (trace.pgLogs || []).map(function (item) {
+                    return [formatDateTime(item.loggedAt), item.apiType, statusLabel(item.resultStatus), item.requestId || "-", item.resultMessage || "-"];
+                }),
+                "PG 요청 이력이 없습니다."
+            )),
+            "</article>"
+        ].join("");
+    }
+
+    function traceMetrics(trace, salesAmount, actionCount) {
+        return "<div class=\"trace-metrics\">"
+            + metric("취소", (trace.cancels || []).length + "건")
+            + metric("원장", (trace.sales || []).length + "건 / " + formatMoney(salesAmount))
+            + metric("외부전송", summarizeStatus(trace.externalSends, "sendStatus"))
+            + metric("알림톡", summarizeStatus(trace.alimtalkQueues, "status"))
+            + metric("복구 작업", (trace.recoveryTasks || []).length + "건")
+            + metric("확인 필요", actionCount + "건", actionCount > 0 ? "danger" : "")
+            + "</div>";
+    }
+
+    function metric(label, value, className) {
+        return "<div class=\"" + (className || "") + "\"><span>" + label + "</span><strong>" + value + "</strong></div>";
+    }
+
+    function summarizeStatus(values, field) {
+        const safe = values || [];
+        const success = safe.filter(function (item) { return item[field] === "SUCCESS" || item[field] === "SENT"; }).length;
+        const failed = safe.filter(function (item) { return item[field] === "FAILED"; }).length;
+        return "성공 " + success + " / 실패 " + failed;
+    }
+
+    function actionNotice(items) {
+        const reasons = items.slice(0, 3).map(function (item) {
+            return escapeHtml(item.lastErrorMessage || item.recoveryType || "상태 확인 필요");
+        }).join("<br>");
+        return "<div class=\"trace-notice danger\"><strong>확인이 필요한 작업 " + items.length + "건</strong><span>" + reasons + "</span><button type=\"button\" onclick=\"document.querySelector('[data-tab-target=followups]').click(); document.getElementById('paymentTraceModal').hidden=true;\">후속처리·복구 화면 보기</button></div>";
+    }
+
+    function traceActions(trace) {
+        const payment = trace.payment || {};
+        const buttons = [];
+        if (payment.paymentStatus === "APPROVE_UNKNOWN") {
+            buttons.push(traceActionButton("retry-query", payment.id, "PG 결과 재조회", "승인 결과를 다시 조회하고 확정 시 SALE 원장과 후속처리를 생성합니다."));
+        }
+        if ((trace.externalSends || []).some(function (item) { return item.sendStatus === "FAILED"; })) {
+            buttons.push(traceActionButton("external-worker", "", "외부전송 재처리", "실패한 외부전송 Queue를 Worker로 다시 처리합니다."));
+        }
+        if ((trace.alimtalkQueues || []).some(function (item) { return item.status === "FAILED"; })) {
+            buttons.push(traceActionButton("alimtalk-worker", "", "알림톡 재처리", "실패한 알림톡 Queue를 Worker로 다시 처리합니다."));
+        }
+        (trace.recoveryTasks || [])
+            .filter(function (task) { return task.status !== "SUCCESS"; })
+            .slice(0, 3)
+            .forEach(function (task) {
+                buttons.push(traceActionButton("recovery-retry", task.id, "RecoveryTask #" + task.id + " 재시도", recoveryTypeLabel(task.recoveryType)));
+            });
+        if (!buttons.length) {
+            return "";
+        }
+        return "<section class=\"trace-action-panel\"><h4>다음 조치</h4><div class=\"trace-action-grid\">" + buttons.join("") + "</div></section>";
+    }
+
+    function traceActionButton(action, id, label, description) {
+        return "<button type=\"button\" data-trace-action=\"" + action + "\" data-trace-id=\"" + escapeHtml(id || "") + "\">"
+            + "<strong>" + escapeHtml(label) + "</strong>"
+            + "<span>" + escapeHtml(description || "") + "</span>"
+            + "</button>";
+    }
+
+    async function handleTraceActionClick(event) {
+        const button = event.target.closest("[data-trace-action]");
+        if (!button) {
+            return;
+        }
+        const action = button.dataset.traceAction;
+        const id = button.dataset.traceId;
+        const originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = "<strong>처리 중</strong><span>요청을 반영하고 있습니다.</span>";
+        try {
+            if (action === "retry-query") {
+                await postJson("/api/payment-bridge/payments/" + id + "/retry-query", {});
+                setMessage("PG 결과 재조회를 완료했습니다. 통합 추적 정보를 다시 불러옵니다.");
+                await refreshAll();
+                await openPaymentTrace(id);
+            } else if (action === "external-worker") {
+                await runWorker("/api/admin/external-send/worker/run", "외부전송");
+                closePaymentTrace();
+            } else if (action === "alimtalk-worker") {
+                await runWorker("/api/admin/alimtalk/worker/run", "알림톡");
+                closePaymentTrace();
+            } else if (action === "recovery-retry") {
+                await postJson("/admin/api/recovery/tasks/" + id + "/retry", {});
+                setMessage("RecoveryTask #" + id + " 재시도를 요청했습니다.");
+                await refreshAll();
+                closePaymentTrace();
+            }
+        } catch (error) {
+            setMessage(error.message);
+            button.disabled = false;
+            button.innerHTML = originalHtml;
+        }
+    }
+
+    function traceTimeline(trace) {
+        const payment = trace.payment || {};
+        const events = [{
+            at: payment.approvedAt,
+            label: "결제",
+            status: payment.paymentStatus,
+            description: "승인 " + formatMoney(payment.approvedAmount)
+        }];
+        (trace.cancels || []).forEach(function (item) {
+            events.push({at: item.canceledAt, label: "취소", status: item.cancelStatus, description: formatMoney(item.cancelAmount)});
+        });
+        (trace.externalSends || []).forEach(function (item) {
+            events.push({at: item.lastSentAt || item.processingStartedAt, label: "외부전송", status: item.sendStatus, description: item.lastErrorMessage || item.targetSystem});
+        });
+        (trace.alimtalkQueues || []).forEach(function (item) {
+            events.push({at: item.sentAt || item.processingStartedAt, label: "알림톡", status: item.status, description: item.lastErrorMessage || item.eventType});
+        });
+        events.sort(function (a, b) { return String(a.at || "").localeCompare(String(b.at || "")); });
+        return "<ol class=\"trace-timeline\">" + events.map(function (item) {
+            return "<li><time>" + formatDateTime(item.at) + "</time><div><strong>" + item.label + " · " + statusLabel(item.status) + "</strong><span>" + escapeHtml(item.description || "-") + "</span></div></li>";
+        }).join("") + "</ol>";
+    }
+
+    function renderFollowups(trace) {
+        const rows = [];
+        (trace.externalSends || []).forEach(function (item) {
+            rows.push(["외부전송 #" + item.id, statusLabel(item.sendStatus), item.retryCount + "회", item.lastErrorMessage || "-"]);
+        });
+        (trace.alimtalkQueues || []).forEach(function (item) {
+            rows.push(["알림톡 #" + item.id, statusLabel(item.status), item.retryCount + "회", item.lastErrorMessage || "-"]);
+        });
+        (trace.recoveryTasks || []).forEach(function (item) {
+            rows.push(["복구 #" + item.id + " " + recoveryTypeLabel(item.recoveryType), statusLabel(item.status), item.retryCount + "회", item.lastErrorMessage || "-"]);
+        });
+        return traceTable(["구분", "상태", "재시도", "최근 실패 사유"], rows, "후속 처리 내역이 없습니다.");
+    }
+
+    function traceSection(title, content) {
+        return "<section class=\"trace-section\"><h4>" + title + "</h4>" + content + "</section>";
+    }
+
+    function traceTable(headers, rows, emptyText) {
+        if (!rows.length) {
+            return "<p class=\"trace-empty\">" + emptyText + "</p>";
+        }
+        return "<div class=\"receipt-table-wrap\"><table class=\"receipt-table\"><thead><tr>"
+            + headers.map(function (header) { return "<th>" + header + "</th>"; }).join("")
+            + "</tr></thead><tbody>"
+            + rows.map(function (row) {
+                return "<tr>" + row.map(function (value) { return "<td>" + escapeHtml(value) + "</td>"; }).join("") + "</tr>";
+            }).join("")
+            + "</tbody></table></div>";
+    }
+
+    function traceLinkList(values, label, href, emptyText) {
+        if (!values.length) {
+            return "<p class=\"trace-empty\">" + emptyText + "</p>";
+        }
+        return "<div class=\"trace-links\">" + values.map(function (item) {
+            return "<a href=\"" + href(item) + "\">" + escapeHtml(label(item)) + "<span>이동</span></a>";
+        }).join("") + "</div>";
+    }
+
+    function saleTypeLabel(value) {
+        return value === "SALE" ? "SALE 결제매출" : value === "CANCEL" ? "CANCEL 취소매출" : value || "-";
+    }
+
+    function recoveryTypeLabel(value) {
+        const labels = {
+            APPROVE_UNKNOWN_CHECK: "승인 결과불명 확인",
+            CANCEL_UNKNOWN_CHECK: "취소 결과불명 확인",
+            NETWORK_CANCEL: "망취소 처리",
+            APPROVE_INTERNAL_SAVE_FAILED: "승인 후 내부 저장 실패",
+            EXTERNAL_SEND_RETRY: "외부전송 재시도",
+            ALIMTALK_RETRY: "알림톡 재시도"
+        };
+        return labels[value] || value || "-";
+    }
+
+    function formatDateTime(value) {
+        return value ? String(value).replace("T", " ").slice(0, 19) : "-";
     }
 
     function renderScenarioResult(result) {
