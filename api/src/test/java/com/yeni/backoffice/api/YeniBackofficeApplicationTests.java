@@ -258,7 +258,24 @@ class YeniBackofficeApplicationTests {
 								  "orderNo": "ORDER-COMMERCE-TEST-001",
 								  "buyerName": "포트폴리오 고객",
 								  "productName": "커머스 주문 테스트 상품",
-								  "orderAmount": 12000
+								  "deliveryFee": 3000,
+								  "discountAmount": 2000,
+								  "items": [
+								    {
+								      "productCode": "K2-DEMO-001",
+								      "productName": "커머스 주문 테스트 상품",
+								      "optionName": "블랙 / 095",
+								      "unitPrice": 10000,
+								      "quantity": 2
+								    },
+								    {
+								      "productCode": "K2-DEMO-002",
+								      "productName": "추가 구성 상품",
+								      "optionName": "기본",
+								      "unitPrice": 5000,
+								      "quantity": 1
+								    }
+								  ]
 								}
 								"""))
 				.andExpect(status().isOk())
@@ -267,6 +284,11 @@ class YeniBackofficeApplicationTests {
 		JsonNode order = objectMapper.readTree(orderResult.getResponse().getContentAsString());
 		assertThat(order.get("orderStatus").asText()).isEqualTo("CREATED");
 		assertThat(order.get("paymentStatus").asText()).isEqualTo("READY");
+		assertThat(order.get("productAmount").decimalValue()).isEqualByComparingTo("25000");
+		assertThat(order.get("deliveryFee").decimalValue()).isEqualByComparingTo("3000");
+		assertThat(order.get("discountAmount").decimalValue()).isEqualByComparingTo("2000");
+		assertThat(order.get("payableAmount").decimalValue()).isEqualByComparingTo("26000");
+		assertThat(order.get("items")).hasSize(2);
 
 		MvcResult paidResult = mockMvc.perform(post("/admin/api/commerce/orders/{orderId}/pay", order.get("id").asLong()))
 				.andExpect(status().isOk())
@@ -285,10 +307,93 @@ class YeniBackofficeApplicationTests {
 				.getContentAsString());
 
 		assertThat(trace.get("payment").get("orderNo").asText()).isEqualTo("ORDER-COMMERCE-TEST-001");
+		assertThat(trace.get("payment").get("approvedAmount").decimalValue()).isEqualByComparingTo("26000");
 		assertThat(trace.get("sales")).hasSize(1);
 		assertThat(trace.get("sales").get(0).get("saleType").asText()).isEqualTo("SALE");
+		assertThat(trace.get("sales").get(0).get("totalAmount").decimalValue()).isEqualByComparingTo("26000");
 		assertThat(trace.get("externalSends")).hasSize(1);
 		assertThat(trace.get("alimtalkQueues")).hasSize(1);
+	}
+
+	@Test
+	void commerceOrderWithoutItemsFails() throws Exception {
+		mockMvc.perform(post("/admin/api/commerce/orders")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "buyerName": "포트폴리오 고객",
+								  "deliveryFee": 0,
+								  "discountAmount": 0,
+								  "items": []
+								}
+								"""))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void commerceOrderInvalidItemOrDiscountFails() throws Exception {
+		mockMvc.perform(post("/admin/api/commerce/orders")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "buyerName": "포트폴리오 고객",
+								  "deliveryFee": 0,
+								  "discountAmount": 0,
+								  "items": [
+								    {
+								      "productCode": "K2-DEMO-001",
+								      "productName": "커머스 주문 테스트 상품",
+								      "unitPrice": 0,
+								      "quantity": 1
+								    }
+								  ]
+								}
+								"""))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(post("/admin/api/commerce/orders")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "buyerName": "포트폴리오 고객",
+								  "deliveryFee": 0,
+								  "discountAmount": 20000,
+								  "items": [
+								    {
+								      "productCode": "K2-DEMO-001",
+								      "productName": "커머스 주문 테스트 상품",
+								      "unitPrice": 10000,
+								      "quantity": 1
+								    }
+								  ]
+								}
+								"""))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void approveAlreadyPaidCommerceOrderFailsWithoutDuplicateLedger() throws Exception {
+		JsonNode order = objectMapper.readTree(mockMvc.perform(post("/admin/api/commerce/orders/mock")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isOk())
+				.andReturn()
+				.getResponse()
+				.getContentAsString());
+
+		JsonNode paid = objectMapper.readTree(mockMvc.perform(post("/admin/api/commerce/orders/{orderId}/pay", order.get("id").asLong()))
+				.andExpect(status().isOk())
+				.andReturn()
+				.getResponse()
+				.getContentAsString());
+
+		mockMvc.perform(post("/admin/api/commerce/orders/{orderId}/pay", order.get("id").asLong()))
+				.andExpect(status().isConflict());
+
+		String orderNo = paid.get("orderNo").asText();
+		assertThat(paymentRepository.findAll().stream().filter(payment -> orderNo.equals(payment.getOrderNo()))).hasSize(1);
+		assertThat(salesRepository.findAll().stream()
+				.filter(sales -> orderNo.equals(sales.getOrderNo()) && SaleType.SALE.equals(sales.getSaleType()))).hasSize(1);
 	}
 
 	@Test

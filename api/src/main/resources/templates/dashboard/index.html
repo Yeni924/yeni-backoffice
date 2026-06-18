@@ -40,7 +40,8 @@
                     <span class="nav-arrow">▾</span>
                 </button>
                 <div class="nav-items">
-                    <a class="nav-link" href="/admin/payment-operations"><span class="nav-icon">PG</span><span class="nav-text">PG Mock 콘솔</span></a>
+                    <a class="nav-link" href="/admin/commerce/orders"><span class="nav-icon">OR</span><span class="nav-text">주문 관리</span></a>
+                    <a class="nav-link" href="/admin/payment-operations"><span class="nav-icon">PG</span><span class="nav-text">PG 운영</span></a>
                     <a class="nav-link" href="/admin/payment-operations/sales-ledger"><span class="nav-icon">SL</span><span class="nav-text">매출 원장</span></a>
                     <a class="nav-link" href="/admin/payment-operations/settlements"><span class="nav-icon">ST</span><span class="nav-text">정산 관리</span></a>
                     <a class="nav-link" href="/admin/database-spec"><span class="nav-icon">DB</span><span class="nav-text">DB 명세</span></a>
@@ -122,7 +123,8 @@
                     <div class="hero-actions">
                         <button class="primary-action" type="button" onclick="document.querySelector('.table-wrap').scrollIntoView({behavior:'smooth', block:'start'})">프로젝트 목록 보기</button>
                         <button class="btn" type="button" onclick="document.getElementById('scope').scrollIntoView({behavior:'smooth', block:'start'})">구현 범위 보기</button>
-                        <a class="primary-action" href="/admin/payment-operations">PG Mock 콘솔 열기</a>
+                        <a class="primary-action" href="/admin/commerce/orders">주문 관리에서 시작하기</a>
+                        <a class="primary-action" href="/admin/payment-operations">PG 운영 콘솔 열기</a>
                     </div>
                 </div>
 
@@ -152,9 +154,14 @@
             </section>
 
             <section class="demo-entry reveal-section" aria-label="포트폴리오 구현 데모 바로가기">
-                <a class="demo-entry-card primary" href="/admin/payment-operations">
-                    <span>데모</span>
-                    <strong>PG Mock 운영 콘솔</strong>
+                <a class="demo-entry-card primary" href="/admin/commerce/orders">
+                    <span>시작</span>
+                    <strong>주문 관리</strong>
+                    <p>주문 상품을 입력하고 서버 계산 금액으로 결제 승인을 실행한 뒤 PG 운영 흐름으로 이어갑니다.</p>
+                </a>
+                <a class="demo-entry-card" href="/admin/payment-operations">
+                    <span>PG</span>
+                    <strong>PG 운영 콘솔</strong>
                     <p>Mock PG 승인/취소/결과불명/망취소와 이후 매출 원장, 외부전송, 알림톡, 복구 작업 흐름을 확인합니다.</p>
                 </a>
                 <a class="demo-entry-card" href="/admin/payment-operations/sales-ledger">
@@ -177,6 +184,21 @@
                     <strong>Swagger 문서</strong>
                     <p>요청/응답 DTO와 주요 상태값을 API 기준으로 확인할 수 있습니다.</p>
                 </a>
+            </section>
+
+            <section class="demo-sequence reveal-section" aria-label="권장 시연 순서">
+                <div>
+                    <span class="section-label">권장 시연 순서</span>
+                    <h2>주문에서 정산까지 한 흐름으로 확인합니다.</h2>
+                    <p>주문 관리 → PG 운영 → 매출 원장 → 후속처리/복구 → 정산 관리 순서로 보면 실제 커머스 백오피스 흐름이 가장 자연스럽게 보입니다.</p>
+                </div>
+                <div class="sequence-links">
+                    <a href="/admin/commerce/orders">1. 주문 관리</a>
+                    <a href="/admin/payment-operations">2. PG 운영</a>
+                    <a href="/admin/payment-operations/sales-ledger">3. 매출 원장</a>
+                    <a href="/admin/payment-operations#followups">4. 후속처리/복구</a>
+                    <a href="/admin/payment-operations/settlements">5. 정산 관리</a>
+                </div>
             </section>
 
             <div class="search-row reveal delayed">

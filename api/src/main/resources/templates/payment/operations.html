@@ -23,19 +23,40 @@
                 <div>
                     <span class="badge">PG 운영</span>
                     <h2>PG 운영 콘솔</h2>
-                    <p>결제 승인부터 매출 원장, 외부전송, 알림톡, RecoveryTask까지 이어지는 운영 흐름을 시나리오로 확인합니다.</p>
+                    <p>주문 결제 승인 이후 생성되는 결제 거래, 매출 원장, 외부전송, 알림톡 Queue, 복구 작업을 한 화면에서 추적합니다.</p>
                 </div>
-                <a class="btn btn-light swagger-link" href="/swagger-ui/index.html" target="_blank" rel="noopener">API 문서</a>
+                <div class="hero-actions-inline">
+                    <a class="btn btn-primary" href="/admin/commerce/orders">주문 관리에서 시작</a>
+                    <a class="btn btn-light" href="/swagger-ui/index.html" target="_blank" rel="noopener">API 문서</a>
+                </div>
             </div>
 
             <div class="demo-notice">
-                이 화면은 포트폴리오 시연을 위한 공개 데모 화면입니다. 실제 운영 환경에서는 관리자 인증, 권한 제어, 감사 로그, IP 제한, CSRF 방어가 필요한 영역입니다.
+                포트폴리오 공개 데모 화면입니다. 실제 운영 환경에서는 관리자 인증, 권한 제어, 감사 로그, IP 제한, CSRF 방어가 함께 필요합니다.
             </div>
 
-            <div class="demo-flow-guide">
-                <strong>추천 시연 순서</strong>
-                <span>정상 결제 완료 → 부분취소 → 승인 결과불명 → RecoveryTask 확인 → 정산 생성</span>
-            </div>
+            <section class="flow-guide-card">
+                <div>
+                    <span class="badge">권장 시연 흐름</span>
+                    <h3>주문 생성에서 정산 초안까지 이어서 확인하기</h3>
+                    <p>
+                        먼저 주문 관리에서 주문 상품을 입력하고 결제 승인을 실행한 뒤, 이 화면에서 PG 승인/취소/결과불명/망취소 시나리오와
+                        결제 이후 생성되는 매출 원장, 외부전송, 알림톡, 복구 작업 흐름을 확인합니다.
+                    </p>
+                </div>
+                <div class="flow-guide-actions">
+                    <a class="btn btn-primary" href="/admin/commerce/orders">주문 관리</a>
+                    <a class="btn btn-light" href="/admin/payment-operations/sales-ledger">매출 원장</a>
+                    <a class="btn btn-light" href="/admin/payment-operations/settlements">정산 관리</a>
+                </div>
+                <ol class="flow-steps">
+                    <li><strong>1. 주문 생성</strong><span>주문 상품과 결제 대상 금액 계산</span></li>
+                    <li><strong>2. 결제 승인</strong><span>Mock PG 승인 및 중복 요청 방어</span></li>
+                    <li><strong>3. 결제 추적</strong><span>승인/취소/결과불명/망취소 확인</span></li>
+                    <li><strong>4. 매출 원장</strong><span>SALE/CANCEL 거래 기록 확인</span></li>
+                    <li><strong>5. 정산 생성</strong><span>매출 원장 기준 정산 초안 생성</span></li>
+                </ol>
+            </section>
 
             <nav class="ops-tabs" aria-label="PG 운영 화면">
                 <button class="active" type="button" data-tab-target="overview">운영 개요</button>
@@ -47,7 +68,7 @@
             <section class="tab-panel active" data-tab-panel="overview">
                 <section class="operator-note">
                     <h3>결제 운영에서 확인하는 흐름</h3>
-                    <p>결제 완료 후 결제 거래가 저장되고 SALE 결제매출 원장이 생성됩니다. 취소 완료 시에는 기존 SALE을 수정하지 않고 CANCEL 취소매출 음수 거래를 별도로 생성합니다.</p>
+                    <p>결제 완료 시 결제 거래가 저장되고 SALE 결제매출 원장이 생성됩니다. 취소 완료 시에는 기존 SALE을 수정하지 않고 CANCEL 취소매출 음수 거래를 별도로 생성합니다.</p>
                     <p>PG 응답이 확정되지 않은 거래는 승인 결과불명 또는 취소 결과불명 상태로 관리합니다. 외부전송과 알림톡은 결제 저장과 분리하고, 실패나 망취소 필요 상황은 RecoveryTask로 추적합니다.</p>
                 </section>
 
@@ -72,10 +93,10 @@
                     </div>
                     <div class="reliability-grid">
                         <button class="reliability-item" type="button" data-note="같은 주문번호 또는 승인 요청키로 다시 요청해도 기존 승인 결과를 반환합니다.">
-                            <strong>중복 결제 방지</strong>
+                            <strong>중복 결제 방어</strong>
                             <span>idempotency key 기반 기존 결과 반환</span>
                         </button>
-                        <button class="reliability-item" type="button" data-note="PG 취소 호출 전 누적 취소금액과 남은 취소 가능 금액을 검증합니다.">
+                        <button class="reliability-item" type="button" data-note="PG 취소 호출 전 누적 취소금액과 잔여 취소 가능 금액을 검증합니다.">
                             <strong>취소 가능 금액 검증</strong>
                             <span>승인 금액 초과 취소 차단</span>
                         </button>
@@ -83,9 +104,9 @@
                             <strong>결과불명 관리</strong>
                             <span>승인/취소 결과불명 추적</span>
                         </button>
-                        <button class="reliability-item" type="button" data-note="PG 승인은 성공했지만 내부 저장 또는 후속 처리가 실패한 경우 운영자가 확인할 수 있게 복구 작업으로 남깁니다.">
+                        <button class="reliability-item" type="button" data-note="PG 승인은 성공했지만 내부 저장이나 후속 처리가 실패한 경우 운영자가 추적할 수 있도록 복구 작업으로 남깁니다.">
                             <strong>망취소 복구</strong>
-                            <span>운영자가 추적 가능한 복구 작업</span>
+                            <span>운영자 추적 가능한 복구 작업</span>
                         </button>
                         <button class="reliability-item" type="button" data-note="외부전송과 알림톡 실패가 결제 저장을 되돌리지 않도록 후속 처리를 분리합니다.">
                             <strong>후속 처리 분리</strong>
@@ -109,7 +130,7 @@
                     </div>
                     <div id="emptyGuide" class="empty-guide" hidden>
                         아직 표시할 데모 데이터가 없습니다.<br />
-                        시나리오를 실행하면 결제 거래와 후속 처리 데이터가 이 화면에 채워집니다.
+                        주문 관리에서 주문 결제를 실행하거나 시나리오를 실행하면 결제 거래와 후속 처리 데이터가 이 화면에 채워집니다.
                     </div>
                     <div id="messageBox" class="message-box">시나리오를 선택하면 처리 결과가 여기에 표시됩니다.</div>
                 </section>
@@ -118,7 +139,7 @@
             <section class="tab-panel" data-tab-panel="scenarios">
                 <div class="ops-grid scenario-grid">
                     <section class="card ops-panel">
-                        <div class="panel-header"><h3>시나리오 실행</h3></div>
+                        <div class="panel-header"><h3>수동 PG 시나리오 테스트</h3></div>
 
                         <div class="scenario-group">
                             <h4>기본 결제 흐름</h4>
@@ -131,7 +152,7 @@
 
                         <div class="scenario-group">
                             <h4>방어 로직</h4>
-                            <p>중복 요청과 취소 가능 금액 초과처럼 운영에서 막아야 하는 케이스를 확인합니다.</p>
+                            <p>중복 요청과 취소 가능 금액 초과처럼 운영에서 차단해야 하는 케이스를 확인합니다.</p>
                             <div class="scenario-button-grid">
                                 <button type="button" data-scenario="duplicate-approve">중복 승인 요청</button>
                                 <button type="button" data-scenario="over-cancel">취소금액 초과 요청</button>
@@ -199,7 +220,7 @@
                     <div class="panel-header">
                         <div>
                             <h3>결제 거래 내역</h3>
-                            <p class="table-caption">PG 승인/취소 결과와 결제 거래 상태를 확인합니다.</p>
+                            <p class="table-caption">PG 승인/취소 결과와 결제 거래 상태를 확인합니다. 행을 선택하면 원장, 외부전송, 알림톡, 복구 작업 연결 정보를 상세로 볼 수 있습니다.</p>
                         </div>
                     </div>
                     <div class="status-legend">
@@ -227,12 +248,12 @@
                 <section class="operator-note">
                     <h3>후속처리와 복구 작업</h3>
                     <p>승인 결과불명과 취소 결과불명 상태에서는 SALE/CANCEL 원장을 바로 생성하지 않습니다. RecoveryTask로 남긴 뒤 재조회로 결과가 확정된 경우에만 매출 원장과 후속처리 Queue를 생성합니다.</p>
-                    <p>PG 승인 성공 후 내부 저장 또는 후속처리가 실패한 경우에는 망취소 필요 상태로 RecoveryTask를 생성해 운영자가 추적할 수 있도록 구성했습니다.</p>
+                    <p>PG 승인 성공 후 내부 저장 또는 후속 처리가 실패한 경우에는 망취소 필요 상태로 RecoveryTask를 생성해 운영자가 추적할 수 있도록 구성했습니다.</p>
                     <div class="status-legend compact">
                         <span><b class="status-dot ready"></b>대기: 처리 전 또는 재처리 대기</span>
                         <span><b class="status-dot paid"></b>성공: 후속처리 완료</span>
                         <span><b class="status-dot cancel"></b>실패: 전송 또는 발송 실패</span>
-                        <span><b class="status-dot unknown"></b>복구필요: 운영자 확인 또는 배치 재처리 대상</span>
+                        <span><b class="status-dot unknown"></b>복구필요: 운영 확인 또는 배치 재처리 대상</span>
                     </div>
                 </section>
 

@@ -1138,6 +1138,58 @@
         .demo-entry-card.primary p {
             color: rgba(255, 255, 255, .82);
         }
+        .demo-sequence {
+            display: grid;
+            grid-template-columns: minmax(0, .86fr) minmax(360px, 1fr);
+            gap: 20px;
+            align-items: center;
+            margin: 0 0 18px;
+            padding: 22px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: #fff;
+            box-shadow: 0 16px 42px rgba(31, 33, 40, .045);
+        }
+        .demo-sequence h2 {
+            margin: 6px 0 8px;
+            color: var(--text);
+            font-size: 20px;
+            font-weight: 780;
+            letter-spacing: -0.035em;
+        }
+        .demo-sequence p {
+            margin: 0;
+            color: var(--sub);
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.65;
+            word-break: keep-all;
+        }
+        .sequence-links {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .sequence-links a {
+            min-height: 48px;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--surface-soft);
+            color: #424753;
+            font-size: 12px;
+            font-weight: 760;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            word-break: keep-all;
+        }
+        .sequence-links a:hover {
+            border-color: var(--primary-line);
+            background: var(--primary-soft);
+            color: var(--primary);
+        }
         .impact-stats {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1288,6 +1340,8 @@
             .impact-hero { grid-template-columns: 1fr; padding: 26px; }
             .impact-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
             .demo-entry { grid-template-columns: 1fr; }
+            .demo-sequence { grid-template-columns: 1fr; }
+            .sequence-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .stat-note { grid-column: 1 / -1; }
         }
         @media (max-width: 768px) {
@@ -1378,6 +1432,10 @@
             .demo-entry-card { min-height: auto; padding: 16px; }
             .demo-entry-card strong { font-size: 15px; word-break: keep-all; }
             .demo-entry-card p { font-size: 12px; word-break: keep-all; line-height: 1.6; }
+            .demo-sequence { padding: 16px; border-radius: 16px; }
+            .demo-sequence h2 { font-size: 17px; line-height: 1.35; }
+            .demo-sequence p { font-size: 12px; }
+            .sequence-links { grid-template-columns: 1fr; }
             .table-wrap { border-radius: 14px; }
             .portfolio-section {
                 padding: 20px 16px;
